@@ -124,6 +124,25 @@ type receiptRLP struct {
 	CumulativeGasUsed uint64
 	Bloom             Bloom
 	Logs              []*Log
+
+	Type              uint8
+	TxHash            common.Hash
+	ContractAddress   common.Address
+	GasUsed           uint64
+	EffectiveGasPrice *big.Int
+
+	BlockHash        common.Hash
+	BlockNumber      *big.Int
+	TransactionIndex uint
+
+	BlobGasUsed           uint64
+	BlobGasPrice          *big.Int
+	DepositNonce          *uint64
+	DepositReceiptVersion *uint64
+	L1GasPrice            *big.Int
+	L1GasUsed             *big.Int
+	L1Fee                 *big.Int
+	FeeScalar             *big.Float
 }
 
 type depositReceiptRLP struct {
@@ -138,6 +157,11 @@ type depositReceiptRLP struct {
 	// DepositNonce. Post Canyon, receipts will have a non-empty DepositReceiptVersion indicating
 	// which post-Canyon receipt hash function to invoke.
 	DepositReceiptVersion *uint64 `rlp:"optional"`
+
+	Type             uint8
+	BlockHash        common.Hash
+	BlockNumber      *big.Int
+	TransactionIndex uint
 }
 
 // storedReceiptRLP is the storage encoding of a receipt.
@@ -239,7 +263,28 @@ func NewReceipt(root []byte, failed bool, cumulativeGasUsed uint64) *Receipt {
 // EncodeRLP implements rlp.Encoder, and flattens the consensus fields of a receipt
 // into an RLP stream. If no post state is present, byzantium fork is assumed.
 func (r *Receipt) EncodeRLP(w io.Writer) error {
-	data := &receiptRLP{r.statusEncoding(), r.CumulativeGasUsed, r.Bloom, r.Logs}
+	data := &receiptRLP{
+		r.statusEncoding(),
+		r.CumulativeGasUsed,
+		r.Bloom,
+		r.Logs,
+		r.Type,
+		r.TxHash,
+		r.ContractAddress,
+		r.GasUsed,
+		r.EffectiveGasPrice,
+		r.BlockHash,
+		r.BlockNumber,
+		r.TransactionIndex,
+		r.BlobGasUsed,
+		r.BlobGasPrice,
+		r.DepositNonce,
+		r.DepositReceiptVersion,
+		r.L1GasPrice,
+		r.L1GasUsed,
+		r.L1Fee,
+		r.FeeScalar,
+	}
 	if r.Type == LegacyTxType {
 		return rlp.Encode(w, data)
 	}
@@ -257,7 +302,18 @@ func (r *Receipt) encodeTyped(data *receiptRLP, w *bytes.Buffer) error {
 	w.WriteByte(r.Type)
 	switch r.Type {
 	case DepositTxType:
-		withNonce := &depositReceiptRLP{data.PostStateOrStatus, data.CumulativeGasUsed, data.Bloom, data.Logs, r.DepositNonce, r.DepositReceiptVersion}
+		withNonce := &depositReceiptRLP{
+			data.PostStateOrStatus,
+			data.CumulativeGasUsed,
+			data.Bloom,
+			data.Logs,
+			data.DepositNonce,
+			data.DepositReceiptVersion,
+			data.Type,
+			data.BlockHash,
+			data.BlockNumber,
+			data.TransactionIndex,
+		}
 		return rlp.Encode(w, withNonce)
 	default:
 		return rlp.Encode(w, data)
@@ -269,7 +325,28 @@ func (r *Receipt) MarshalBinary() ([]byte, error) {
 	if r.Type == LegacyTxType {
 		return rlp.EncodeToBytes(r)
 	}
-	data := &receiptRLP{r.statusEncoding(), r.CumulativeGasUsed, r.Bloom, r.Logs}
+	data := &receiptRLP{
+		r.statusEncoding(),
+		r.CumulativeGasUsed,
+		r.Bloom,
+		r.Logs,
+		r.Type,
+		r.TxHash,
+		r.ContractAddress,
+		r.GasUsed,
+		r.EffectiveGasPrice,
+		r.BlockHash,
+		r.BlockNumber,
+		r.TransactionIndex,
+		r.BlobGasUsed,
+		r.BlobGasPrice,
+		r.DepositNonce,
+		r.DepositReceiptVersion,
+		r.L1GasPrice,
+		r.L1GasUsed,
+		r.L1Fee,
+		r.FeeScalar,
+	}
 	var buf bytes.Buffer
 	err := r.encodeTyped(data, &buf)
 	return buf.Bytes(), err
@@ -346,14 +423,32 @@ func (r *Receipt) decodeTyped(b []byte) error {
 		r.Type = b[0]
 		r.DepositNonce = data.DepositNonce
 		r.DepositReceiptVersion = data.DepositReceiptVersion
-		return r.setFromRLP(receiptRLP{data.PostStateOrStatus, data.CumulativeGasUsed, data.Bloom, data.Logs})
+		return r.setFromRLP(receiptRLP{
+			PostStateOrStatus:     data.PostStateOrStatus,
+			CumulativeGasUsed:     data.CumulativeGasUsed,
+			Bloom:                 data.Bloom,
+			Logs:                  data.Logs,
+			DepositNonce:          data.DepositNonce,
+			DepositReceiptVersion: data.DepositReceiptVersion,
+			Type:                  data.Type,
+			BlockHash:             data.BlockHash,
+			BlockNumber:           data.BlockNumber,
+			TransactionIndex:      data.TransactionIndex,
+		})
 	default:
 		return ErrTxTypeNotSupported
 	}
 }
 
 func (r *Receipt) setFromRLP(data receiptRLP) error {
-	r.CumulativeGasUsed, r.Bloom, r.Logs = data.CumulativeGasUsed, data.Bloom, data.Logs
+	r.Type, r.CumulativeGasUsed, r.Bloom, r.Logs, r.TxHash, r.ContractAddress,
+		r.GasUsed, r.EffectiveGasPrice, r.BlockHash, r.BlockNumber, r.TransactionIndex,
+		r.BlobGasUsed, r.BlobGasPrice, r.DepositNonce, r.DepositReceiptVersion, r.L1GasPrice,
+		r.L1GasUsed, r.L1Fee, r.FeeScalar =
+		data.Type, data.CumulativeGasUsed, data.Bloom, data.Logs, data.TxHash, data.ContractAddress,
+		data.GasUsed, data.EffectiveGasPrice, data.BlockHash, data.BlockNumber, data.TransactionIndex,
+		data.BlobGasUsed, data.BlobGasPrice, data.DepositNonce, data.DepositReceiptVersion, data.L1GasPrice,
+		data.L1GasUsed, data.L1Fee, data.FeeScalar
 	return r.setStatus(data.PostStateOrStatus)
 }
 
@@ -495,7 +590,28 @@ func (rs Receipts) Len() int { return len(rs) }
 // hash computation.
 func (rs Receipts) EncodeIndex(i int, w *bytes.Buffer) {
 	r := rs[i]
-	data := &receiptRLP{r.statusEncoding(), r.CumulativeGasUsed, r.Bloom, r.Logs}
+	data := &receiptRLP{
+		r.statusEncoding(),
+		r.CumulativeGasUsed,
+		r.Bloom,
+		r.Logs,
+		r.Type,
+		r.TxHash,
+		r.ContractAddress,
+		r.GasUsed,
+		r.EffectiveGasPrice,
+		r.BlockHash,
+		r.BlockNumber,
+		r.TransactionIndex,
+		r.BlobGasUsed,
+		r.BlobGasPrice,
+		r.DepositNonce,
+		r.DepositReceiptVersion,
+		r.L1GasPrice,
+		r.L1GasUsed,
+		r.L1Fee,
+		r.FeeScalar,
+	}
 	if r.Type == LegacyTxType {
 		rlp.Encode(w, data)
 		return
@@ -507,7 +623,8 @@ func (rs Receipts) EncodeIndex(i int, w *bytes.Buffer) {
 	case DepositTxType:
 		if r.DepositReceiptVersion != nil {
 			// post-canyon receipt hash computation update
-			depositData := &depositReceiptRLP{data.PostStateOrStatus, data.CumulativeGasUsed, r.Bloom, r.Logs, r.DepositNonce, r.DepositReceiptVersion}
+			depositData := &depositReceiptRLP{data.PostStateOrStatus, data.CumulativeGasUsed, r.Bloom, r.Logs,
+				r.DepositNonce, r.DepositReceiptVersion, r.Type, r.BlockHash, r.BlockNumber, r.TransactionIndex}
 			rlp.Encode(w, depositData)
 		} else {
 			rlp.Encode(w, data)

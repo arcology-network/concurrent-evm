@@ -33,6 +33,8 @@ type StateDB interface {
 	AddBalance(common.Address, *uint256.Int)
 	GetBalance(common.Address) *uint256.Int
 
+	PeekBalance(common.Address) *uint256.Int
+
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
 

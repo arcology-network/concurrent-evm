@@ -37,6 +37,8 @@ type ExecutionResult struct {
 	RefundedGas uint64 // Total gas refunded after execution
 	Err         error  // Any error encountered during the execution(listed in core/vm/errors.go)
 	ReturnData  []byte // Returned data from evm(function result or data supplied with revert opcode)
+
+	ContractAddress common.Address
 }
 
 // Unwrap returns the internal evm error which allows us for further
@@ -150,6 +152,20 @@ type Message struct {
 	IsDepositTx    bool                 // IsDepositTx indicates the message is force-included and can persist a mint.
 	Mint           *big.Int             // Mint is the amount to mint before EVM processing, or nil if there is no minting.
 	RollupCostData types.RollupCostData // RollupCostData caches data to compute the fee we charge for data availability
+}
+
+func NewMessage(from common.Address, to *common.Address, nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, accessList types.AccessList, checkNonce bool) Message {
+	return Message{
+		From:              from,
+		To:                to,
+		Nonce:             nonce,
+		Value:             amount,
+		GasLimit:          gasLimit,
+		GasPrice:          gasPrice,
+		Data:              data,
+		AccessList:        accessList,
+		SkipAccountChecks: !checkNonce,
+	}
 }
 
 // TransactionToMessage converts a transaction into a Message.
@@ -277,7 +293,7 @@ func (st *StateTransition) buyGas() error {
 	if overflow {
 		return fmt.Errorf("%w: address %v required balance exceeds 256 bits", ErrInsufficientFunds, st.msg.From.Hex())
 	}
-	if have, want := st.state.GetBalance(st.msg.From), balanceCheckU256; have.Cmp(want) < 0 {
+	if have, want := st.state.PeekBalance(st.msg.From), balanceCheckU256; have.Cmp(want) < 0 {
 		return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, st.msg.From.Hex(), have, want)
 	}
 	if err := st.gp.SubGas(st.msg.GasLimit); err != nil {
@@ -498,11 +514,12 @@ func (st *StateTransition) innerTransitionDb() (*ExecutionResult, error) {
 	st.state.Prepare(rules, msg.From, st.evm.Context.Coinbase, msg.To, vm.ActivePrecompiles(rules), msg.AccessList)
 
 	var (
-		ret   []byte
-		vmerr error // vm errors do not effect consensus and are therefore not assigned to err
+		ret          []byte
+		vmerr        error // vm errors do not effect consensus and are therefore not assigned to err
+		contractAddr common.Address
 	)
 	if contractCreation {
-		ret, _, st.gasRemaining, vmerr = st.evm.Create(sender, msg.Data, st.gasRemaining, value)
+		ret, contractAddr, st.gasRemaining, vmerr = st.evm.Create(sender, msg.Data, st.gasRemaining, value)
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1)
@@ -579,10 +596,11 @@ func (st *StateTransition) innerTransitionDb() (*ExecutionResult, error) {
 	}
 
 	return &ExecutionResult{
-		UsedGas:     st.gasUsed(),
-		RefundedGas: gasRefund,
-		Err:         vmerr,
-		ReturnData:  ret,
+		UsedGas:         st.gasUsed(),
+		RefundedGas:     gasRefund,
+		Err:             vmerr,
+		ReturnData:      ret,
+		ContractAddress: contractAddr,
 	}, nil
 }
 

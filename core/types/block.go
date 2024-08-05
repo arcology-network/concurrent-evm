@@ -272,6 +272,29 @@ func NewBlockWithWithdrawals(header *Header, txs []*Transaction, uncles []*Heade
 	return b.WithWithdrawals(withdrawals)
 }
 
+// Attach transactions,uncle and withdraw into block.
+func (b *Block) AttachBody(txs []*Transaction, uncles []*Header, withdrawals []*Withdrawal) error {
+
+	if len(txs) > 0 {
+		b.transactions = make(Transactions, len(txs))
+		copy(b.transactions, txs)
+	}
+
+	if len(uncles) > 0 {
+		b.uncles = make([]*Header, len(uncles))
+		for i := range uncles {
+			b.uncles[i] = CopyHeader(uncles[i])
+		}
+	}
+
+	if withdrawals != nil {
+		b.withdrawals = make([]*Withdrawal, len(withdrawals))
+		copy(b.withdrawals, withdrawals)
+	}
+
+	return nil
+}
+
 // CopyHeader creates a deep copy of a block header.
 func CopyHeader(h *Header) *Header {
 	cpy := *h

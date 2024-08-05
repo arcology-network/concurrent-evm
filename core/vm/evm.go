@@ -133,6 +133,9 @@ type EVM struct {
 	// available gas is calculated in gasCall* according to the 63/64 rule and later
 	// applied in opCall*.
 	callGasTemp uint64
+
+	//for Arcology
+	ArcologyNetworkAPIs *ArcologyNetwork
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
@@ -158,6 +161,9 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 		chainRules:  chainConfig.Rules(blockCtx.BlockNumber, blockCtx.Random != nil, blockCtx.Time),
 	}
 	evm.interpreter = NewEVMInterpreter(evm)
+
+	//for Arcology
+	evm.ArcologyNetworkAPIs = NewArcologyNetwork(evm)
 	return evm
 }
 
@@ -197,6 +203,12 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	if !value.IsZero() && !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
 		return nil, gas, ErrInsufficientBalance
 	}
+
+	// Redirect the call to Arcology APIs
+	if invoked, ret, leftOverGas, err := evm.ArcologyNetworkAPIs.Call(caller, addr, input, gas); invoked {
+		return ret, leftOverGas, err
+	}
+
 	snapshot := evm.StateDB.Snapshot()
 	p, isPrecompile := evm.precompile(addr)
 	debug := evm.Config.Tracer != nil
@@ -371,6 +383,12 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, gas, ErrDepth
 	}
+
+	// Redirect the call to Arcology APIs
+	if invoked, ret, leftOverGas, err := evm.ArcologyNetworkAPIs.Call(caller, addr, input, gas); invoked {
+		return ret, leftOverGas, err
+	}
+
 	// We take a snapshot here. This is a bit counter-intuitive, and could probably be skipped.
 	// However, even a staticcall is considered a 'touch'. On mainnet, static calls were introduced
 	// after all empty accounts were deleted, so this is not required. However, if we omit this,
@@ -440,11 +458,13 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
 		return nil, common.Address{}, gas, ErrInsufficientBalance
 	}
+
 	nonce := evm.StateDB.GetNonce(caller.Address())
 	if nonce+1 < nonce {
 		return nil, common.Address{}, gas, ErrNonceUintOverflow
 	}
 	evm.StateDB.SetNonce(caller.Address(), nonce+1)
+
 	// We add this to the access list _before_ taking a snapshot. Even if the creation fails,
 	// the access-list change should not be rolled back
 	if evm.chainRules.IsBerlin {
