@@ -54,7 +54,7 @@ type Trie struct {
 
 	// tracer is the tool to track the trie changes.
 	// It will be reset after each commit operation.
-	tracer *tracer
+	tracer tracerInterface
 }
 
 // newFlag returns the cache flag value for a newly created node.
@@ -88,7 +88,7 @@ func New(id *ID, db database.Database) (*Trie, error) {
 	trie := &Trie{
 		owner:  id.Owner,
 		reader: reader,
-		tracer: newTracer(),
+		tracer: newParaTracer(),
 	}
 	if id.Root != (common.Hash{}) && id.Root != types.EmptyRootHash {
 		rootnode, err := trie.resolveAndTrack(id.Root[:], nil)
@@ -374,7 +374,17 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error
 		if !dirty || err != nil {
 			return false, n, err
 		}
-		n = n.copy()
+
+		/*   Arcology Network
+		The code below creates a fresh copy from a "clean" node ONCE. All the subsequent operations will be performed on that
+		single copy until the next root hash calculation. This cut the overall time by half.
+		This comes with the cost of losing ability to roll back to any state snapshot between two root hash
+		calcuations. This doesn't affect Arcology since it has other methods to keep track of state changes.
+		*/
+		if !n.flags.dirty {
+			n = n.copy()
+		}
+
 		n.flags = t.newFlag()
 		n.Children[key[0]] = nn
 		return true, n, nil

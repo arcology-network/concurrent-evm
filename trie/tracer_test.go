@@ -68,8 +68,8 @@ func testTrieTracer(t *testing.T, vals []struct{ k, v string }) {
 	for _, val := range vals {
 		trie.MustUpdate([]byte(val.k), []byte(val.v))
 	}
-	insertSet := copySet(trie.tracer.inserts) // copy before commit
-	deleteSet := copySet(trie.tracer.deletes) // copy before commit
+	insertSet := copySet(trie.tracer.getInserts()) // copy before commit
+	deleteSet := copySet(trie.tracer.getDeletes()) // copy before commit
 	root, nodes, _ := trie.Commit(false)
 	db.Update(root, types.EmptyRootHash, trienode.NewWithNodeSet(nodes))
 
@@ -86,7 +86,7 @@ func testTrieTracer(t *testing.T, vals []struct{ k, v string }) {
 	for _, val := range vals {
 		trie.MustDelete([]byte(val.k))
 	}
-	insertSet, deleteSet = copySet(trie.tracer.inserts), copySet(trie.tracer.deletes)
+	insertSet, deleteSet = copySet(trie.tracer.getInserts()), copySet(trie.tracer.getDeletes())
 	if !compareSet(insertSet, nil) {
 		t.Fatal("Unexpected insertion set")
 	}
@@ -112,10 +112,10 @@ func testTrieTracerNoop(t *testing.T, vals []struct{ k, v string }) {
 	for _, val := range vals {
 		trie.MustDelete([]byte(val.k))
 	}
-	if len(trie.tracer.inserts) != 0 {
+	if len(trie.tracer.getInserts()) != 0 {
 		t.Fatal("Unexpected insertion set")
 	}
-	if len(trie.tracer.deletes) != 0 {
+	if len(trie.tracer.getDeletes()) != 0 {
 		t.Fatal("Unexpected deletion set")
 	}
 }
@@ -249,9 +249,9 @@ func TestAccessListLeak(t *testing.T) {
 	}
 	for _, c := range cases {
 		trie, _ = New(TrieID(root), db)
-		n1 := len(trie.tracer.accessList)
+		n1 := len(trie.tracer.getAccessList())
 		c.op(trie)
-		n2 := len(trie.tracer.accessList)
+		n2 := len(trie.tracer.getAccessList())
 
 		if n1 != n2 {
 			t.Fatalf("AccessList is leaked, prev %d after %d", n1, n2)

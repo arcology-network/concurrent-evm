@@ -593,18 +593,18 @@ func runRandTest(rt randTest) error {
 					deleteExp[path] = struct{}{}
 				}
 			}
-			if len(insertExp) != len(tr.tracer.inserts) {
+			if len(insertExp) != len(tr.tracer.getInserts()) {
 				rt[i].err = fmt.Errorf("insert set mismatch")
 			}
-			if len(deleteExp) != len(tr.tracer.deletes) {
+			if len(deleteExp) != len(tr.tracer.getDeletes()) {
 				rt[i].err = fmt.Errorf("delete set mismatch")
 			}
-			for insert := range tr.tracer.inserts {
+			for insert := range tr.tracer.getInserts() {
 				if _, present := insertExp[insert]; !present {
 					rt[i].err = fmt.Errorf("missing inserted node")
 				}
 			}
-			for del := range tr.tracer.deletes {
+			for del := range tr.tracer.getDeletes() {
 				if _, present := deleteExp[del]; !present {
 					rt[i].err = fmt.Errorf("missing deleted node")
 				}
