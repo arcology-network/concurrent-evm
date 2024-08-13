@@ -1,13 +1,16 @@
 /*
  *   Copyright (c) 2024 Arcology Network
+
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
  *   the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
+
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *   GNU General Public License for more details.
+
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -31,8 +34,16 @@ type Database struct {
 	dbs [16]*database
 }
 
-// diskdbs, db.cleans, mptResolver{}
-func New(diskdb interface{}, _ interface{}, resolver ChildResolver, config *Config) *Database {
+// This is a wrapper for the database that allows for parallel access to the database
+// The input diskdb can be either a single database or an array of databases. In the original
+// implementation, the diskdb is a single instance of ethdb.Database.
+//
+// The output is a Database struct that contains an array of 16 databases. If the input diskdb is
+// a single database, then the same database is copied into all 16 slots.
+//
+// It just tries to keep the same interface as the original ethdb.Database, except the output is an array of databases.
+
+func New(diskdb interface{}, resolver ChildResolver, config *Config) *Database {
 	db := &Database{}
 	if ddb, ok := diskdb.(ethdb.Database); ok {
 		for i := 0; i < len(db.dbs); i++ {
