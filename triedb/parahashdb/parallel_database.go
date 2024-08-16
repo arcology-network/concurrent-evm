@@ -30,6 +30,11 @@ import (
 	"github.com/ethereum/go-ethereum/trie/triestate"
 )
 
+// The database struct is just a duplicate of the original triedb.Database struct
+// defined in hashdb/database.go. The interface remains the same as the original triedb.Database
+// but with a different implementation. Projects that use triedb.Database can switch to this
+// implementation only by a different import statement without changing their code.
+
 type Database struct {
 	dbs [16]*database
 }
