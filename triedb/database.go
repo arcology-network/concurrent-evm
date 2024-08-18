@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/trie/triestate"
 	"github.com/ethereum/go-ethereum/triedb/database"
 	"github.com/ethereum/go-ethereum/triedb/hashdb"
+	parahashdb "github.com/ethereum/go-ethereum/triedb/parahashdb"
 	"github.com/ethereum/go-ethereum/triedb/pathdb"
 )
 
@@ -129,6 +130,8 @@ func (db *Database) Reader(blockRoot common.Hash) (database.Reader, error) {
 	case *hashdb.Database:
 		return b.Reader(blockRoot)
 	case *pathdb.Database:
+		return b.Reader(blockRoot)
+	case *parahashdb.Database:
 		return b.Reader(blockRoot)
 	}
 	return nil, errors.New("unknown backend")
