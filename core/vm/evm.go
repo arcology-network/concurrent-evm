@@ -204,8 +204,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		return nil, gas, ErrInsufficientBalance
 	}
 
-	// Redirect the call to Arcology APIs
-	if invoked, ret, leftOverGas, err := evm.ArcologyNetworkAPIs.Call(caller, addr, input, gas); invoked {
+	// Redirect the call to Arcology APIs. The last parameter is false, which means it is NOT a read-only call.
+	if invoked, ret, leftOverGas, err := evm.ArcologyNetworkAPIs.Call(caller, addr, input, gas, false); invoked {
 		return ret, leftOverGas, err
 	}
 
@@ -384,8 +384,8 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 		return nil, gas, ErrDepth
 	}
 
-	// Redirect the call to Arcology APIs
-	if invoked, ret, leftOverGas, err := evm.ArcologyNetworkAPIs.Call(caller, addr, input, gas); invoked {
+	// Redirect the call to Arcology APIs. StaticCall is a read-only call so the last parameter is true.
+	if invoked, ret, leftOverGas, err := evm.ArcologyNetworkAPIs.Call(caller, addr, input, gas, true); invoked {
 		return ret, leftOverGas, err
 	}
 

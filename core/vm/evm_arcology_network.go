@@ -16,7 +16,7 @@ func IsType[T any](v interface{}) bool {
 
 // KernelAPI provides system level function calls supported by arcology platform.
 type ArcologyAPIRouterInterface interface {
-	Call(caller, callee [20]byte, input []byte, origin [20]byte, nonce uint64, blockhash common.Hash) (bool, []byte, bool, int64)
+	Call(caller, callee [20]byte, input []byte, origin [20]byte, nonce uint64, blockhash common.Hash, isStatic bool) (bool, []byte, bool, int64)
 }
 
 type ArcologyNetwork struct {
@@ -33,7 +33,7 @@ func NewArcologyNetwork(evm *EVM) *ArcologyNetwork {
 }
 
 // Redirect to Arcology API intead
-func (this ArcologyNetwork) Call(callerContract ContractRef, addr common.Address, input []byte, gas uint64) (called bool, ret []byte, leftOverGas uint64, err error) {
+func (this ArcologyNetwork) Call(callerContract ContractRef, addr common.Address, input []byte, gas uint64, isReadOnly bool) (called bool, ret []byte, leftOverGas uint64, err error) {
 	if called, ret, ok, gasUsed := this.APIs.Call(
 		callerContract.Address(),
 		addr,
@@ -41,6 +41,7 @@ func (this ArcologyNetwork) Call(callerContract ContractRef, addr common.Address
 		this.evm.Origin,
 		this.evm.StateDB.GetNonce(this.evm.Origin),
 		this.evm.Context.GetHash(new(big.Int).Sub(this.evm.Context.BlockNumber, big1).Uint64()),
+		isReadOnly,
 	); called {
 		if gasUsed < 0 {
 			leftOverGas = gas + uint64(gasUsed*-1)
