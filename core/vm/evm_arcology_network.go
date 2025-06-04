@@ -34,7 +34,7 @@ func NewArcologyNetwork(evm *EVM) *ArcologyNetwork {
 
 // Redirect to Arcology API intead
 func (this ArcologyNetwork) Call(callerContract ContractRef, addr common.Address, input []byte, gas uint64, isReadOnly bool) (called bool, ret []byte, leftOverGas uint64, err error) {
-	if called, ret, ok, gasUsed := this.APIs.Call(
+	if successfullyCalled, ret, ok, gasUsed := this.APIs.Call(
 		callerContract.Address(),
 		addr,
 		input,
@@ -42,7 +42,7 @@ func (this ArcologyNetwork) Call(callerContract ContractRef, addr common.Address
 		this.evm.StateDB.GetNonce(this.evm.Origin),
 		this.evm.Context.GetHash(new(big.Int).Sub(this.evm.Context.BlockNumber, big1).Uint64()),
 		isReadOnly,
-	); called {
+	); successfullyCalled {
 		if gasUsed < 0 {
 			leftOverGas = gas + uint64(gasUsed*-1)
 		} else {
