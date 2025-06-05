@@ -288,10 +288,8 @@ func (s *StateDB) GetBalance(addr common.Address) *uint256.Int {
 	return common.U2560
 }
 
-// used only in Monaco.
-func (s *StateDB) PeekBalance(addr common.Address) *uint256.Int {
-	return s.GetBalance(addr)
-}
+// Place holder ONLY, the true implementations is in Arcology Network and for Arcology Network only.
+func (s *StateDB) PeekBalance(addr common.Address) *uint256.Int {return s.GetBalance(addr)}
 
 // GetNonce retrieves the nonce from the given address or 0 if object not found
 func (s *StateDB) GetNonce(addr common.Address) uint64 {
