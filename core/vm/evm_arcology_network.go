@@ -16,6 +16,8 @@ func IsType[T any](v interface{}) bool {
 
 // KernelAPI provides system level function calls supported by arcology platform.
 type ArcologyAPIRouterInterface interface {
+	SetExecutionSubsidy(uint64)  // Kept on Arcology side for clarity.
+	GetExecutionSubsidy() uint64 // Get the execution subsidy for the current call
 	Call(caller, callee [20]byte, input []byte, origin [20]byte, nonce uint64, blockhash common.Hash, isStatic bool) (bool, []byte, bool, int64)
 }
 
@@ -43,7 +45,7 @@ func (this ArcologyNetwork) Call(callerContract ContractRef, addr common.Address
 		this.evm.Context.GetHash(new(big.Int).Sub(this.evm.Context.BlockNumber, big1).Uint64()),
 		isReadOnly,
 	); successfullyCalled {
-		if gasUsed < 0 {
+		if gasUsed < 0 { // Refund or reallocate gas
 			leftOverGas = gas + uint64(gasUsed*-1)
 		} else {
 			leftOverGas = gas - uint64(gasUsed)
@@ -96,3 +98,4 @@ func (this *ArcologyNetwork) CallHierarchy() [][]byte {
 func (this *ArcologyNetwork) IsInConstructor() bool {
 	return this.CallContext.Contract.CodeHash == common.Hash{}
 }
+func (this *ArcologyNetwork) GetExecutionSubsidy() uint64 { return this.APIs.GetExecutionSubsidy() }
