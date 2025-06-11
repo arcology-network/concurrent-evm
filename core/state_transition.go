@@ -606,7 +606,8 @@ func (st *StateTransition) innerTransitionDb() (*ExecutionResult, error) {
 
 func (st *StateTransition) refundGas(refundQuotient uint64) uint64 {
 	// Apply refund counter, capped to a refund quotient
-	refund := st.gasUsed() / refundQuotient
+	gasused := st.gasUsed()
+	refund := gasused / refundQuotient
 	if refund > st.state.GetRefund() {
 		refund = st.state.GetRefund()
 	}
@@ -619,7 +620,12 @@ func (st *StateTransition) refundGas(refundQuotient uint64) uint64 {
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.
-	st.gp.AddGas(st.gasRemaining)
+	// for arcology
+	if gasused >= st.msg.GasLimit {
+		st.gp.SubGas(gasused - st.msg.GasLimit)
+	} else {
+		st.gp.AddGas(st.msg.GasLimit - gasused)
+	}
 
 	return refund
 }
