@@ -632,7 +632,7 @@ func (st *StateTransition) refundGas(refundQuotient uint64) uint64 {
 
 // gasUsed returns the amount of gas used up by the state transition.
 func (st *StateTransition) gasUsed() uint64 {
-	return st.initialGas + st.evm.ArcologyNetworkAPIs.GetExecutionSubsidy() - st.gasRemaining // Added ExecutionSubsidy for Acology Network
+	return st.initialGas - st.gasRemaining // Added ExecutionSubsidy for Acology Network
 }
 
 // blobGasUsed returns the amount of blob gas used by the message.
