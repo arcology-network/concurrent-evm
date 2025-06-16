@@ -6,36 +6,26 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-func IsType[T any](v interface{}) bool {
-	switch v.(type) {
-	case T:
-		return true
-	}
-	return false
-}
-
-// KernelAPI provides system level function calls supported by arcology platform.
-type ArcologyAPIRouterInterface interface {
-	SetExecutionSubsidy(uint64)  // Kept on Arcology side for clarity.
-	GetExecutionSubsidy() uint64 // Get the execution subsidy for the current call
-	Call(caller, callee [20]byte, input []byte, origin [20]byte, nonce uint64, blockhash common.Hash, isStatic bool) (bool, []byte, bool, int64)
-}
-
 type ArcologyNetwork struct {
 	evm         *EVM
 	CallContext *ScopeContext              // only available at run time
 	APIs        ArcologyAPIRouterInterface // Arcology API entrance
 }
 
-func NewArcologyNetwork(evm *EVM) *ArcologyNetwork {
-	return &ArcologyNetwork{
-		evm: evm,
-		// context: nil, // only available at run time
+func NewArcologyNetwork(evm *EVM) *ArcologyNetwork {	
+	api := &ArcologyNetwork{
+		evm: evm,		
 	}
+	return api
 }
 
 // Redirect to Arcology API intead
 func (this ArcologyNetwork) Call(callerContract ContractRef, addr common.Address, input []byte, gas uint64, isReadOnly bool) (called bool, ret []byte, leftOverGas uint64, err error) {
+	// Not constructor because the APIs are set after the EVM is itialized.
+	if this.CallContext != nil && this.CallContext != nil && this.CallContext.Contract.API == nil {
+		this.CallContext.Contract.API = this.APIs
+	}
+
 	if successfullyCalled, ret, ok, gasUsed := this.APIs.Call(
 		callerContract.Address(),
 		addr,
@@ -98,4 +88,4 @@ func (this *ArcologyNetwork) CallHierarchy() [][]byte {
 func (this *ArcologyNetwork) IsInConstructor() bool {
 	return this.CallContext.Contract.CodeHash == common.Hash{}
 }
-func (this *ArcologyNetwork) GetExecutionSubsidy() uint64 { return this.APIs.GetExecutionSubsidy() }
+// func (this *ArcologyNetwork) GetExecutionSubsidy() uint64 { return this.APIs.GetExecutionSubsidy() }
