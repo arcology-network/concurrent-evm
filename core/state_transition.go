@@ -307,7 +307,7 @@ func (st *StateTransition) buyGas() error {
  
 	// Arcology only
 	st.evm.ArcologyAPIs.PrepayGas(&st.initialGas, &st.gasRemaining) // Reserve gas for deferred execution.
-	st.evm.ArcologyAPIs.UsePrepaidGas(&st.initialGas, &st.gasRemaining) //Use the prepaid gas for deferred execution.
+	st.evm.ArcologyAPIs.UsePrepaidGas(&st.gasRemaining) //Use the prepaid gas if it is a deferred execution.
 
 	return nil
 }
