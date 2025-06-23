@@ -305,9 +305,10 @@ func (st *StateTransition) buyGas() error {
 	mgvalU256, _ := uint256.FromBig(mgval)
 	st.state.SubBalance(st.msg.From, mgvalU256)
  
-	// Arcology only, Reserve gas for deferred execution.
-	st.evm.ArcologyAPIs.PrepayGas(&st.initialGas, &st.gasRemaining)
-	
+	// Arcology only
+	st.evm.ArcologyAPIs.PrepayGas(&st.initialGas, &st.gasRemaining) // Reserve gas for deferred execution.
+	st.evm.ArcologyAPIs.UsePrepaidGas(&st.initialGas, &st.gasRemaining) //Use the prepaid gas for deferred execution.
+
 	return nil
 }
 
