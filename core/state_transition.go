@@ -304,6 +304,10 @@ func (st *StateTransition) buyGas() error {
 	st.initialGas = st.msg.GasLimit
 	mgvalU256, _ := uint256.FromBig(mgval)
 	st.state.SubBalance(st.msg.From, mgvalU256)
+ 
+	// Arcology only, Reserve gas for deferred execution.
+	st.evm.ArcologyAPIs.PrepayGas(&st.initialGas, &st.gasRemaining)
+	
 	return nil
 }
 
@@ -613,6 +617,9 @@ func (st *StateTransition) refundGas(refundQuotient uint64) uint64 {
 	}
 	st.gasRemaining += refund
 
+	// Arcology only, the prepaid gas has to be refunded to the prepayers instead of the sender.
+	st.evm.ArcologyAPIs.RefundPrepaidGas(&st.gasRemaining) 
+
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := uint256.NewInt(st.gasRemaining)
 	remaining = remaining.Mul(remaining, uint256.MustFromBig(st.msg.GasPrice))
@@ -632,7 +639,7 @@ func (st *StateTransition) refundGas(refundQuotient uint64) uint64 {
 
 // gasUsed returns the amount of gas used up by the state transition.
 func (st *StateTransition) gasUsed() uint64 {
-	return st.initialGas - st.gasRemaining // Added ExecutionSubsidy for Acology Network
+	return st.initialGas - st.gasRemaining
 }
 
 // blobGasUsed returns the amount of blob gas used by the message.

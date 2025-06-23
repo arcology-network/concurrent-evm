@@ -135,7 +135,7 @@ type EVM struct {
 	callGasTemp uint64
 
 	//for Arcology
-	ArcologyNetworkAPIs *ArcologyNetwork
+	ArcologyAPIs *ArcologyNetwork
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
@@ -163,7 +163,7 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 	evm.interpreter = NewEVMInterpreter(evm)
 
 	//for Arcology
-	evm.ArcologyNetworkAPIs = NewArcologyNetwork(evm)
+	evm.ArcologyAPIs = NewArcologyNetwork(evm)
 	return evm
 }
 
@@ -205,7 +205,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 
 	// Redirect the call to Arcology APIs. The last parameter is false, which means it is NOT a read-only call.
-	if invoked, ret, leftOverGas, err := evm.ArcologyNetworkAPIs.Call(caller, addr, input, gas, false); invoked {
+	if invoked, ret, leftOverGas, err := evm.ArcologyAPIs.Call(caller, addr, input, gas, false); invoked {
 		return ret, leftOverGas, err
 	}
 
@@ -385,7 +385,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	}
 
 	// Redirect the call to Arcology APIs. StaticCall is a read-only call so the last parameter is true.
-	if invoked, ret, leftOverGas, err := evm.ArcologyNetworkAPIs.Call(caller, addr, input, gas, true); invoked {
+	if invoked, ret, leftOverGas, err := evm.ArcologyAPIs.Call(caller, addr, input, gas, true); invoked {
 		return ret, leftOverGas, err
 	}
 

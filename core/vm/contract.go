@@ -58,8 +58,6 @@ type Contract struct {
 
 	Gas   uint64
 	value *uint256.Int
-
-	API ArcologyAPIRouterInterface // Arcology only.
 }
 
 // NewContract returns a new contract environment for the execution of EVM.
@@ -158,25 +156,9 @@ func (c *Contract) Caller() common.Address {
 	return c.CallerAddress
 }
 
-// UseGas attempts the use gas and subtracts it and returns true on success
-// func (c *Contract) UseGas(gas uint64) (ok bool) {
-// 	if c.Gas < gas {
-// 		return false
-// 	}
-// 	c.Gas -= gas
-// 	return true
-// }
-
-// UseGas attempts to use gas and subtracts it from the contract's gas.
-// If the gas is insufficient, it will attempt to use sponsored gas if the API
-// supports it (Arcology only). Returns true if gas was successfully used.
+//UseGas attempts the use gas and subtracts it and returns true on success
 func (c *Contract) UseGas(gas uint64) (ok bool) {
 	if c.Gas < gas {
-		diff := gas - c.Gas 
-		if c.API.UseSponsoredGas(diff) {// Arcology only
-			c.Gas -= gas
-			return true
-		} 
 		return false
 	}
 	c.Gas -= gas
