@@ -19,9 +19,10 @@ type ArcologyAPIRouterInterface interface {
 	// SetExecutionSubsidy(uint64)  // Kept on Arcology side for clarity.
 	// GetExecutionSubsidy() uint64 // Get the execution subsidy for the current call
 	Call(caller, callee [20]byte, input []byte, origin [20]byte, nonce uint64, blockhash common.Hash, isStatic bool) (bool, []byte, bool, int64)
+	Job() any                          // Get the job information for the current call
 	PrepayGas(*uint64, *uint64) uint64 // Prepay gas for deferred execution.
-	UsePrepaidGas(*uint64) bool //Use sponsored gas for the current call
-	RefundPrepaidGas(*uint64) bool // Refund sponsored gas
+	UsePrepaidGas(*uint64) bool        //Use sponsored gas for the current call
+	RefundPrepaidGas(*uint64) bool     // Refund sponsored gas
 }
 
 type ArcologyNetwork struct {
@@ -30,9 +31,9 @@ type ArcologyNetwork struct {
 	APIs        ArcologyAPIRouterInterface // Arcology API entrance
 }
 
-func NewArcologyNetwork(evm *EVM) *ArcologyNetwork {	
+func NewArcologyNetwork(evm *EVM) *ArcologyNetwork {
 	api := &ArcologyNetwork{
-		evm: evm,		
+		evm: evm,
 	}
 	return api
 }
@@ -98,8 +99,19 @@ func (this *ArcologyNetwork) CallHierarchy() [][]byte {
 	return buffers
 }
 
-func (this *ArcologyNetwork) IsInConstructor() bool {	return this.CallContext.Contract.CodeHash == common.Hash{}}
+func (this *ArcologyNetwork) IsInConstructor() bool {
+	return this.CallContext.Contract.CodeHash == common.Hash{}
+}
 
-func (this *ArcologyNetwork) PrepayGas(initGas *uint64, gasRemaining *uint64) uint64 {return this.APIs.PrepayGas(initGas, gasRemaining)}
-func (this *ArcologyNetwork) UsePrepaidGas(gas *uint64) bool{ return this.APIs.UsePrepaidGas(gas)} // Use sponsored gas for the current call
-func (this *ArcologyNetwork) RefundPrepaidGas(gas *uint64) bool{ return this.APIs.RefundPrepaidGas(gas)}
+func (this *ArcologyNetwork) Job() any { return this.APIs.Job() }
+
+func (this *ArcologyNetwork) PrepayGas(initGas *uint64, gasRemaining *uint64) uint64 {
+	return this.APIs.PrepayGas(initGas, gasRemaining)
+}
+func (this *ArcologyNetwork) UsePrepaidGas(gas *uint64) bool { // Use sponsored gas for the current call
+	return this.APIs.UsePrepaidGas(gas)
+}
+
+func (this *ArcologyNetwork) RefundPrepaidGas(gas *uint64) bool {
+	return this.APIs.RefundPrepaidGas(gas)
+}
