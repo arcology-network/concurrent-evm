@@ -16,8 +16,6 @@ func IsType[T any](v interface{}) bool {
 
 // KernelAPI provides system level function calls supported by arcology platform.
 type ArcologyAPIRouterInterface interface {
-	// SetExecutionSubsidy(uint64)  // Kept on Arcology side for clarity.
-	// GetExecutionSubsidy() uint64 // Get the execution subsidy for the current call
 	Call(caller, callee [20]byte, input []byte, origin [20]byte, nonce uint64, blockhash common.Hash, isStatic bool) (bool, []byte, bool, int64)
 	Job() any                          // Get the job information for the current call
 	PrepayGas(*uint64, *uint64) uint64 // Prepay gas for deferred execution.
