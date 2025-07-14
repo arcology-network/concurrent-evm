@@ -304,9 +304,13 @@ func (st *StateTransition) buyGas() error {
 	st.initialGas = st.msg.GasLimit
 	mgvalU256, _ := uint256.FromBig(mgval)
 	st.state.SubBalance(st.msg.From, mgvalU256)
- 
+
 	// Arcology only
-	st.evm.ArcologyAPIs.PrepayGas(&st.initialGas, &st.gasRemaining) // Reserve gas for deferred execution.
+	_, success := st.evm.ArcologyAPIs.PrepayGas(&st.initialGas, &st.gasRemaining) // Reserve gas for deferred execution.
+	if !success {
+		return fmt.Errorf("gas not enough to prepay for deferred execution")
+	}
+
 	st.evm.ArcologyAPIs.UsePrepaidGas(&st.gasRemaining) //Use the prepaid gas if it is a deferred execution.
 
 	return nil
@@ -546,6 +550,10 @@ func (st *StateTransition) innerTransitionDb() (*ExecutionResult, error) {
 			ReturnData: ret,
 		}, nil
 	}
+
+	// Arcology only: Output the execution error to the ArcologyAPIs.
+	st.evm.ArcologyAPIs.SetExecutionErr(vmerr)
+
 	// Note for deposit tx there is no ETH refunded for unused gas, but that's taken care of by the fact that gasPrice
 	// is always 0 for deposit tx. So calling refundGas will ensure the gasUsed accounting is correct without actually
 	// changing the sender's balance
@@ -619,7 +627,7 @@ func (st *StateTransition) refundGas(refundQuotient uint64) uint64 {
 	st.gasRemaining += refund
 
 	// Arcology only, the prepaid gas has to be refunded to the prepayers instead of the sender.
-	st.evm.ArcologyAPIs.RefundPrepaidGas(&st.gasRemaining) 
+	st.evm.ArcologyAPIs.RefundPrepaidGas(&st.gasRemaining)
 
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := uint256.NewInt(st.gasRemaining)

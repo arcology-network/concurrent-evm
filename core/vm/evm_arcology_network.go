@@ -17,10 +17,11 @@ func IsType[T any](v interface{}) bool {
 // KernelAPI provides system level function calls supported by arcology platform.
 type ArcologyAPIRouterInterface interface {
 	Call(caller, callee [20]byte, input []byte, origin [20]byte, nonce uint64, blockhash common.Hash, isStatic bool) (bool, []byte, bool, int64)
-	Job() any                          // Get the job information for the current call
-	PrepayGas(*uint64, *uint64) uint64 // Prepay gas for deferred execution.
-	UsePrepaidGas(*uint64) bool        //Use sponsored gas for the current call
-	RefundPrepaidGas(*uint64) bool     // Refund sponsored gas
+	Job() any                                  // Get the job information for the current call
+	PrepayGas(*uint64, *uint64) (uint64, bool) // Prepay gas for deferred execution.
+	UsePrepaidGas(*uint64) bool                //Use sponsored gas for the current call
+	RefundPrepaidGas(*uint64) bool             // Refund sponsored gas
+	SetExecutionErr(error)                     // Set the execution error for the current call
 }
 
 type ArcologyNetwork struct {
@@ -103,7 +104,7 @@ func (this *ArcologyNetwork) IsInConstructor() bool {
 
 func (this *ArcologyNetwork) Job() any { return this.APIs.Job() }
 
-func (this *ArcologyNetwork) PrepayGas(initGas *uint64, gasRemaining *uint64) uint64 {
+func (this *ArcologyNetwork) PrepayGas(initGas *uint64, gasRemaining *uint64) (uint64, bool) {
 	return this.APIs.PrepayGas(initGas, gasRemaining)
 }
 func (this *ArcologyNetwork) UsePrepaidGas(gas *uint64) bool { // Use sponsored gas for the current call
@@ -112,4 +113,8 @@ func (this *ArcologyNetwork) UsePrepaidGas(gas *uint64) bool { // Use sponsored 
 
 func (this *ArcologyNetwork) RefundPrepaidGas(gas *uint64) bool {
 	return this.APIs.RefundPrepaidGas(gas)
+}
+
+func (this *ArcologyNetwork) SetExecutionErr(err error) {
+	this.APIs.SetExecutionErr(err)
 }
