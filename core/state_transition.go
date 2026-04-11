@@ -306,13 +306,10 @@ func (st *StateTransition) buyGas() error {
 	st.state.SubBalance(st.msg.From, mgvalU256)
 
 	// Arcology only
-	_, success := st.evm.ArcologyAPIs.PrepayGas(&st.initialGas, &st.gasRemaining) // Reserve gas for deferred execution.
-	if !success {
+	// Reserve gas for deferred execution.
+	if _, success := st.evm.ArcologyAPIs.PrepayGas(&st.initialGas, &st.gasRemaining); !success {
 		return fmt.Errorf("gas not enough to prepay for deferred execution")
 	}
-
-	st.evm.ArcologyAPIs.UsePrepaidGas(&st.gasRemaining) //Use the prepaid gas if it is a deferred execution.
-
 	return nil
 }
 
