@@ -5,6 +5,8 @@ import (
 )
 
 func init() {
-	gob.Register(Hash{})
-
+	gob.Register(&Hash{})
+	gob.Register(&Address{})
+	gob.Register([]*Hash{})
+	gob.Register([]*Address{})
 }
