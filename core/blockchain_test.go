@@ -194,6 +194,7 @@ func testHeaderChainImport(chain []*types.Header, blockchain *BlockChain) error 
 	}
 	return nil
 }
+
 func TestLastBlock(t *testing.T) {
 	testLastBlock(t, rawdb.HashScheme)
 	testLastBlock(t, rawdb.PathScheme)
@@ -270,6 +271,7 @@ func TestExtendCanonicalHeaders(t *testing.T) {
 	testExtendCanonical(t, false, rawdb.HashScheme)
 	testExtendCanonical(t, false, rawdb.PathScheme)
 }
+
 func TestExtendCanonicalBlocks(t *testing.T) {
 	testExtendCanonical(t, true, rawdb.HashScheme)
 	testExtendCanonical(t, true, rawdb.PathScheme)
@@ -298,6 +300,7 @@ func TestExtendCanonicalHeadersAfterMerge(t *testing.T) {
 	testExtendCanonicalAfterMerge(t, false, rawdb.HashScheme)
 	testExtendCanonicalAfterMerge(t, false, rawdb.PathScheme)
 }
+
 func TestExtendCanonicalBlocksAfterMerge(t *testing.T) {
 	testExtendCanonicalAfterMerge(t, true, rawdb.HashScheme)
 	testExtendCanonicalAfterMerge(t, true, rawdb.PathScheme)
@@ -323,6 +326,7 @@ func TestShorterForkHeaders(t *testing.T) {
 	testShorterFork(t, false, rawdb.HashScheme)
 	testShorterFork(t, false, rawdb.PathScheme)
 }
+
 func TestShorterForkBlocks(t *testing.T) {
 	testShorterFork(t, true, rawdb.HashScheme)
 	testShorterFork(t, true, rawdb.PathScheme)
@@ -353,6 +357,7 @@ func TestShorterForkHeadersAfterMerge(t *testing.T) {
 	testShorterForkAfterMerge(t, false, rawdb.HashScheme)
 	testShorterForkAfterMerge(t, false, rawdb.PathScheme)
 }
+
 func TestShorterForkBlocksAfterMerge(t *testing.T) {
 	testShorterForkAfterMerge(t, true, rawdb.HashScheme)
 	testShorterForkAfterMerge(t, true, rawdb.PathScheme)
@@ -382,6 +387,7 @@ func TestLongerForkHeaders(t *testing.T) {
 	testLongerFork(t, false, rawdb.HashScheme)
 	testLongerFork(t, false, rawdb.PathScheme)
 }
+
 func TestLongerForkBlocks(t *testing.T) {
 	testLongerFork(t, true, rawdb.HashScheme)
 	testLongerFork(t, true, rawdb.PathScheme)
@@ -411,6 +417,7 @@ func TestLongerForkHeadersAfterMerge(t *testing.T) {
 	testLongerForkAfterMerge(t, false, rawdb.HashScheme)
 	testLongerForkAfterMerge(t, false, rawdb.PathScheme)
 }
+
 func TestLongerForkBlocksAfterMerge(t *testing.T) {
 	testLongerForkAfterMerge(t, true, rawdb.HashScheme)
 	testLongerForkAfterMerge(t, true, rawdb.PathScheme)
@@ -440,6 +447,7 @@ func TestEqualForkHeaders(t *testing.T) {
 	testEqualFork(t, false, rawdb.HashScheme)
 	testEqualFork(t, false, rawdb.PathScheme)
 }
+
 func TestEqualForkBlocks(t *testing.T) {
 	testEqualFork(t, true, rawdb.HashScheme)
 	testEqualFork(t, true, rawdb.PathScheme)
@@ -470,6 +478,7 @@ func TestEqualForkHeadersAfterMerge(t *testing.T) {
 	testEqualForkAfterMerge(t, false, rawdb.HashScheme)
 	testEqualForkAfterMerge(t, false, rawdb.PathScheme)
 }
+
 func TestEqualForkBlocksAfterMerge(t *testing.T) {
 	testEqualForkAfterMerge(t, true, rawdb.HashScheme)
 	testEqualForkAfterMerge(t, true, rawdb.PathScheme)
@@ -498,6 +507,7 @@ func TestBrokenHeaderChain(t *testing.T) {
 	testBrokenChain(t, false, rawdb.HashScheme)
 	testBrokenChain(t, false, rawdb.PathScheme)
 }
+
 func TestBrokenBlockChain(t *testing.T) {
 	testBrokenChain(t, true, rawdb.HashScheme)
 	testBrokenChain(t, true, rawdb.PathScheme)
@@ -531,6 +541,7 @@ func TestReorgLongHeaders(t *testing.T) {
 	testReorgLong(t, false, rawdb.HashScheme)
 	testReorgLong(t, false, rawdb.PathScheme)
 }
+
 func TestReorgLongBlocks(t *testing.T) {
 	testReorgLong(t, true, rawdb.HashScheme)
 	testReorgLong(t, true, rawdb.PathScheme)
@@ -546,6 +557,7 @@ func TestReorgShortHeaders(t *testing.T) {
 	testReorgShort(t, false, rawdb.HashScheme)
 	testReorgShort(t, false, rawdb.PathScheme)
 }
+
 func TestReorgShortBlocks(t *testing.T) {
 	testReorgShort(t, true, rawdb.HashScheme)
 	testReorgShort(t, true, rawdb.PathScheme)
@@ -627,6 +639,7 @@ func TestHeadersInsertNonceError(t *testing.T) {
 	testInsertNonceError(t, false, rawdb.HashScheme)
 	testInsertNonceError(t, false, rawdb.PathScheme)
 }
+
 func TestBlocksInsertNonceError(t *testing.T) {
 	testInsertNonceError(t, true, rawdb.HashScheme)
 	testInsertNonceError(t, true, rawdb.PathScheme)
@@ -1340,6 +1353,7 @@ func testCanonicalBlockRetrieval(t *testing.T, scheme string) {
 	}
 	pend.Wait()
 }
+
 func TestEIP155Transition(t *testing.T) {
 	testEIP155Transition(t, rawdb.HashScheme)
 	testEIP155Transition(t, rawdb.PathScheme)
@@ -1454,6 +1468,7 @@ func testEIP155Transition(t *testing.T, scheme string) {
 		t.Errorf("have %v, want %v", have, want)
 	}
 }
+
 func TestEIP161AccountRemoval(t *testing.T) {
 	testEIP161AccountRemoval(t, rawdb.HashScheme)
 	testEIP161AccountRemoval(t, rawdb.PathScheme)
@@ -1952,10 +1967,12 @@ func TestInsertKnownHeaders(t *testing.T) {
 	testInsertKnownChainData(t, "headers", rawdb.HashScheme)
 	testInsertKnownChainData(t, "headers", rawdb.PathScheme)
 }
+
 func TestInsertKnownReceiptChain(t *testing.T) {
 	testInsertKnownChainData(t, "receipts", rawdb.HashScheme)
 	testInsertKnownChainData(t, "receipts", rawdb.PathScheme)
 }
+
 func TestInsertKnownBlocks(t *testing.T) {
 	testInsertKnownChainData(t, "blocks", rawdb.HashScheme)
 	testInsertKnownChainData(t, "blocks", rawdb.PathScheme)
@@ -2074,18 +2091,23 @@ func testInsertKnownChainData(t *testing.T, typ string, scheme string) {
 func TestInsertKnownHeadersWithMerging(t *testing.T) {
 	testInsertKnownChainDataWithMerging(t, "headers", 0)
 }
+
 func TestInsertKnownReceiptChainWithMerging(t *testing.T) {
 	testInsertKnownChainDataWithMerging(t, "receipts", 0)
 }
+
 func TestInsertKnownBlocksWithMerging(t *testing.T) {
 	testInsertKnownChainDataWithMerging(t, "blocks", 0)
 }
+
 func TestInsertKnownHeadersAfterMerging(t *testing.T) {
 	testInsertKnownChainDataWithMerging(t, "headers", 1)
 }
+
 func TestInsertKnownReceiptChainAfterMerging(t *testing.T) {
 	testInsertKnownChainDataWithMerging(t, "receipts", 1)
 }
+
 func TestInsertKnownBlocksAfterMerging(t *testing.T) {
 	testInsertKnownChainDataWithMerging(t, "blocks", 1)
 }
@@ -3616,6 +3638,7 @@ func TestCreateThenDeletePreByzantium(t *testing.T) {
 		ByzantiumBlock: big.NewInt(1_700_000),
 	})
 }
+
 func TestCreateThenDeletePostByzantium(t *testing.T) {
 	testCreateThenDelete(t, params.TestChainConfig)
 }

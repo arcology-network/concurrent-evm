@@ -246,12 +246,14 @@ func BenchmarkPriceHeapOverflow25GB(b *testing.B) {
 	}
 	benchmarkPriceHeapOverflow(b, 25*1024*1024*1024)
 }
+
 func BenchmarkPriceHeapOverflow50GB(b *testing.B) {
 	if testing.Short() {
 		b.Skip("Skipping in short-mode")
 	}
 	benchmarkPriceHeapOverflow(b, 50*1024*1024*1024)
 }
+
 func BenchmarkPriceHeapOverflow100GB(b *testing.B) {
 	if testing.Short() {
 		b.Skip("Skipping in short-mode")

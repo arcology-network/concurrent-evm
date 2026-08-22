@@ -1,0 +1,7 @@
+[para-database]
+engine = "pebble"
+num-shards = 16
+path = "./data"
+cache-mb = 512
+handles = 1024
+read-only = false

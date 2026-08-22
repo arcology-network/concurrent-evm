@@ -56,6 +56,7 @@ func StateIndexFinalBlock(forkName string) uint64 {
 		return StateIndexFinalBlockElectra
 	}
 }
+
 func StateIndexSyncCommittee(forkName string) uint64 {
 	switch forkName {
 	case "bellatrix", "capella", "deneb":
@@ -64,6 +65,7 @@ func StateIndexSyncCommittee(forkName string) uint64 {
 		return StateIndexSyncCommitteeElectra
 	}
 }
+
 func StateIndexNextSyncCommittee(forkName string) uint64 {
 	switch forkName {
 	case "bellatrix", "capella", "deneb":

@@ -854,6 +854,7 @@ func (s *spongeDb) Put(key []byte, value []byte) error {
 	}
 	return nil
 }
+
 func (s *spongeDb) NewIterator(prefix []byte, start []byte) ethdb.Iterator { panic("implement me") }
 
 func (s *spongeDb) Flush() {
@@ -874,6 +875,7 @@ func (b *spongeBatch) Put(key, value []byte) error {
 	b.db.Put(key, value)
 	return nil
 }
+
 func (b *spongeBatch) Delete(key []byte) error             { panic("implement me") }
 func (b *spongeBatch) DeleteRange(start, end []byte) error { panic("implement me") }
 func (b *spongeBatch) ValueSize() int                      { return 100 }
@@ -1302,6 +1304,7 @@ func TestCommitCorrect(t *testing.T) {
 		t.Fatalf("have != want\nhave %q\nwant %q", have[i:], want[i:])
 	}
 }
+
 func printSet(set *trienode.NodeSet) string {
 	var out = new(strings.Builder)
 	fmt.Fprintf(out, "nodeset owner: %v\n", set.Owner)

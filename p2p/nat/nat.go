@@ -147,6 +147,7 @@ func (n ExtIP) MarshalText() ([]byte, error) { return fmt.Appendf(nil, "extip:%v
 func (ExtIP) AddMapping(protocol string, extport, intport int, name string, lifetime time.Duration) (uint16, error) {
 	return uint16(extport), nil
 }
+
 func (ExtIP) DeleteMapping(string, int, int) error { return nil }
 
 // Any returns a port mapper that tries to discover any supported

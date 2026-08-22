@@ -124,6 +124,7 @@ func (exp *exp) publishGauge(name string, metric metrics.GaugeSnapshot) {
 	v := exp.getInt(name)
 	v.Set(metric.Value())
 }
+
 func (exp *exp) publishGaugeFloat64(name string, metric metrics.GaugeFloat64Snapshot) {
 	exp.getFloat(name).Set(metric.Value())
 }

@@ -39,6 +39,11 @@ import (
 type opTracer struct {
 	inserts map[string]struct{}
 	deletes map[string]struct{}
+
+	// shards is an Arcology extension for parallel trie updates. Each entry
+	// retains the tracer owned by one root-nibble worker, avoiding an expensive
+	// path-by-path merge into inserts and deletes after UpdateBatch completes.
+	shards [parallelTrieShardCount]*opTracer
 }
 
 // newOpTracer initializes the tracer for capturing trie changes.
@@ -53,6 +58,11 @@ func newOpTracer() *opTracer {
 // in the deletion set (resurrected node), then just wipe it from
 // the deletion set as it's "untouched".
 func (t *opTracer) onInsert(path []byte) {
+	if shard := t.shard(path); shard != nil {
+		shard.onInsert(path)
+		return
+	}
+
 	if _, present := t.deletes[string(path)]; present {
 		delete(t.deletes, string(path))
 		return
@@ -64,6 +74,11 @@ func (t *opTracer) onInsert(path []byte) {
 // in the addition set, then just wipe it from the addition set
 // as it's untouched.
 func (t *opTracer) onDelete(path []byte) {
+	if shard := t.shard(path); shard != nil {
+		shard.onDelete(path)
+		return
+	}
+
 	if _, present := t.inserts[string(path)]; present {
 		delete(t.inserts, string(path))
 		return
@@ -75,22 +90,27 @@ func (t *opTracer) onDelete(path []byte) {
 func (t *opTracer) reset() {
 	clear(t.inserts)
 	clear(t.deletes)
+	t.shards = [parallelTrieShardCount]*opTracer{}
 }
 
 // copy returns a deep copied tracer instance.
 func (t *opTracer) copy() *opTracer {
-	return &opTracer{
+	clone := &opTracer{
 		inserts: maps.Clone(t.inserts),
 		deletes: maps.Clone(t.deletes),
 	}
+	for position, shard := range t.shards {
+		if shard != nil {
+			clone.shards[position] = shard.copy()
+		}
+	}
+	return clone
 }
 
 // deletedList returns a list of node paths which are deleted from the trie.
 func (t *opTracer) deletedList() [][]byte {
-	paths := make([][]byte, 0, len(t.deletes))
-	for path := range t.deletes {
-		paths = append(paths, []byte(path))
-	}
+	paths := make([][]byte, 0, t.deleteCount())
+	t.appendDeleted(&paths)
 	return paths
 }
 

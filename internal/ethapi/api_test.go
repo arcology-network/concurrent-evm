@@ -631,12 +631,15 @@ func newTestBackend(t *testing.T, n int, gspec *core.Genesis, engine consensus.E
 func (b testBackend) SyncProgress(ctx context.Context) ethereum.SyncProgress {
 	return ethereum.SyncProgress{}
 }
+
 func (b testBackend) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
 	return big.NewInt(0), nil
 }
+
 func (b testBackend) FeeHistory(ctx context.Context, blockCount uint64, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*big.Int, [][]*big.Int, []*big.Int, []float64, []*big.Int, []float64, error) {
 	return nil, nil, nil, nil, nil, nil, nil
 }
+
 func (b testBackend) BlobBaseFee(ctx context.Context) *big.Int { return new(big.Int) }
 func (b testBackend) ChainDb() ethdb.Database                  { return b.db }
 func (b testBackend) AccountManager() *accounts.Manager        { return b.accman }
@@ -655,9 +658,11 @@ func (b testBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber)
 	}
 	return b.chain.GetHeaderByNumber(uint64(number)), nil
 }
+
 func (b testBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
 	return b.chain.GetHeaderByHash(hash), nil
 }
+
 func (b testBackend) HeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*types.Header, error) {
 	if blockNr, ok := blockNrOrHash.Number(); ok {
 		return b.HeaderByNumber(ctx, blockNr)
@@ -687,6 +692,7 @@ func (b testBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumber) 
 func (b testBackend) BlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error) {
 	return b.chain.GetBlockByHash(hash), nil
 }
+
 func (b testBackend) BlockByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*types.Block, error) {
 	if blockNr, ok := blockNrOrHash.Number(); ok {
 		return b.BlockByNumber(ctx, blockNr)
@@ -696,9 +702,11 @@ func (b testBackend) BlockByNumberOrHash(ctx context.Context, blockNrOrHash rpc.
 	}
 	panic("unknown type rpc.BlockNumberOrHash")
 }
+
 func (b testBackend) GetBody(ctx context.Context, hash common.Hash, number rpc.BlockNumber) (*types.Body, error) {
 	return b.chain.GetBlock(hash, uint64(number.Int64())).Body(), nil
 }
+
 func (b testBackend) StateAndHeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*state.StateDB, *types.Header, error) {
 	if number == rpc.PendingBlockNumber {
 		panic("pending state not implemented")
@@ -713,12 +721,14 @@ func (b testBackend) StateAndHeaderByNumber(ctx context.Context, number rpc.Bloc
 	stateDb, err := b.chain.StateAt(header.Root)
 	return stateDb, header, err
 }
+
 func (b testBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*state.StateDB, *types.Header, error) {
 	if blockNr, ok := blockNrOrHash.Number(); ok {
 		return b.StateAndHeaderByNumber(ctx, blockNr)
 	}
 	panic("only implemented for number")
 }
+
 func (b testBackend) Pending() (*types.Block, types.Receipts, *state.StateDB) {
 	block := b.pending
 	if block == nil {
@@ -726,6 +736,7 @@ func (b testBackend) Pending() (*types.Block, types.Receipts, *state.StateDB) {
 	}
 	return block, b.pendingReceipts, nil
 }
+
 func (b testBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
 	header, err := b.HeaderByHash(ctx, hash)
 	if header == nil || err != nil {
@@ -734,6 +745,7 @@ func (b testBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.R
 	receipts := rawdb.ReadReceipts(b.db, hash, header.Number.Uint64(), header.Time, b.chain.Config())
 	return receipts, nil
 }
+
 func (b testBackend) GetEVM(ctx context.Context, state *state.StateDB, header *types.Header, vmConfig *vm.Config, blockContext *vm.BlockContext) *vm.EVM {
 	if vmConfig == nil {
 		vmConfig = b.chain.GetVMConfig()
@@ -744,54 +756,69 @@ func (b testBackend) GetEVM(ctx context.Context, state *state.StateDB, header *t
 	}
 	return vm.NewEVM(context, state, b.chain.Config(), *vmConfig)
 }
+
 func (b testBackend) SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription {
 	panic("implement me")
 }
+
 func (b testBackend) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
 	panic("implement me")
 }
+
 func (b testBackend) SendTx(ctx context.Context, signedTx *types.Transaction) error {
 	panic("implement me")
 }
+
 func (b testBackend) GetCanonicalTransaction(txHash common.Hash) (bool, *types.Transaction, common.Hash, uint64, uint64) {
 	tx, blockHash, blockNumber, index := rawdb.ReadCanonicalTransaction(b.db, txHash)
 	return tx != nil, tx, blockHash, blockNumber, index
 }
+
 func (b testBackend) GetCanonicalReceipt(tx *types.Transaction, blockHash common.Hash, blockNumber, blockIndex uint64) (*types.Receipt, error) {
 	return b.chain.GetCanonicalReceipt(tx, blockHash, blockNumber, blockIndex)
 }
+
 func (b testBackend) TxIndexDone() bool {
 	return true
 }
+
 func (b testBackend) GetPoolTransactions() (types.Transactions, error)         { panic("implement me") }
 func (b testBackend) GetPoolTransaction(txHash common.Hash) *types.Transaction { panic("implement me") }
 func (b testBackend) GetPoolNonce(ctx context.Context, addr common.Address) (uint64, error) {
 	return 0, nil
 }
+
 func (b testBackend) Stats() (pending int, queued int) { panic("implement me") }
 func (b testBackend) TxPoolContent() (map[common.Address][]*types.Transaction, map[common.Address][]*types.Transaction) {
 	panic("implement me")
 }
+
 func (b testBackend) TxPoolContentFrom(addr common.Address) ([]*types.Transaction, []*types.Transaction) {
 	panic("implement me")
 }
+
 func (b testBackend) SubscribeNewTxsEvent(events chan<- core.NewTxsEvent) event.Subscription {
 	panic("implement me")
 }
+
 func (b testBackend) ChainConfig() *params.ChainConfig { return b.chain.Config() }
 func (b testBackend) Engine() consensus.Engine         { return b.chain.Engine() }
 func (b testBackend) GetLogs(ctx context.Context, blockHash common.Hash, number uint64) ([][]*types.Log, error) {
 	panic("implement me")
 }
+
 func (b testBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
 	panic("implement me")
 }
+
 func (b testBackend) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscription {
 	panic("implement me")
 }
+
 func (b testBackend) CurrentView() *filtermaps.ChainView {
 	panic("implement me")
 }
+
 func (b testBackend) NewMatcherBackend() filtermaps.MatcherBackend {
 	panic("implement me")
 }
@@ -805,6 +832,7 @@ func (b testBackend) HistoryPruningCutoff() uint64 {
 func (b testBackend) HistoricalRPCService() *rpc.Client {
 	panic("implement me")
 }
+
 func (b testBackend) Genesis() *types.Block {
 	panic("implement me")
 }

@@ -323,6 +323,13 @@ func (s *StateDB) GetBalance(addr common.Address) *uint256.Int {
 	return common.U2560
 }
 
+// PeekBalance returns an account balance without adding any additional access
+// semantics. Custom Arcology StateDB implementations can use this distinction
+// to keep the gas-affordability check out of their transition read sets.
+func (s *StateDB) PeekBalance(addr common.Address) *uint256.Int {
+	return s.GetBalance(addr)
+}
+
 // GetNonce retrieves the nonce from the given address or 0 if object not found
 func (s *StateDB) GetNonce(addr common.Address) uint64 {
 	stateObject := s.getStateObject(addr)
@@ -966,27 +973,27 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	// If the self-destruct is handled first, then `P` would be left with only one child, thus collapsed
 	// into a shortnode. This requires `B` to be resolved from disk.
 	// Whereas if the created node is handled first, then the collapse is avoided, and `B` is not resolved.
-	var (
-		usedAddrs    []common.Address
-		deletedAddrs []common.Address
-	)
-	for addr, op := range s.mutations {
-		if op.applied {
-			continue
-		}
-		op.applied = true
+	usedAddrs, batchAccounts := s.applyAccountUpdatesInParallel()
+	if !batchAccounts {
+		var deletedAddrs []common.Address
+		for addr, op := range s.mutations {
+			if op.applied {
+				continue
+			}
+			op.applied = true
 
-		if op.isDelete() {
-			deletedAddrs = append(deletedAddrs, addr)
-		} else {
-			s.updateStateObject(s.stateObjects[addr])
-			s.AccountUpdated += 1
+			if op.isDelete() {
+				deletedAddrs = append(deletedAddrs, addr)
+			} else {
+				s.updateStateObject(s.stateObjects[addr])
+				s.AccountUpdated += 1
+			}
+			usedAddrs = append(usedAddrs, addr) // Copy needed for closure
 		}
-		usedAddrs = append(usedAddrs, addr) // Copy needed for closure
-	}
-	for _, deletedAddr := range deletedAddrs {
-		s.deleteStateObject(deletedAddr)
-		s.AccountDeleted += 1
+		for _, deletedAddr := range deletedAddrs {
+			s.deleteStateObject(deletedAddr)
+			s.AccountDeleted += 1
+		}
 	}
 	s.AccountUpdates += time.Since(start)
 

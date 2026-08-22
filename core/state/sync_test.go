@@ -152,22 +152,27 @@ func TestIterativeStateSyncIndividual(t *testing.T) {
 	testIterativeStateSync(t, 1, false, false, rawdb.HashScheme)
 	testIterativeStateSync(t, 1, false, false, rawdb.PathScheme)
 }
+
 func TestIterativeStateSyncBatched(t *testing.T) {
 	testIterativeStateSync(t, 100, false, false, rawdb.HashScheme)
 	testIterativeStateSync(t, 100, false, false, rawdb.PathScheme)
 }
+
 func TestIterativeStateSyncIndividualFromDisk(t *testing.T) {
 	testIterativeStateSync(t, 1, true, false, rawdb.HashScheme)
 	testIterativeStateSync(t, 1, true, false, rawdb.PathScheme)
 }
+
 func TestIterativeStateSyncBatchedFromDisk(t *testing.T) {
 	testIterativeStateSync(t, 100, true, false, rawdb.HashScheme)
 	testIterativeStateSync(t, 100, true, false, rawdb.PathScheme)
 }
+
 func TestIterativeStateSyncIndividualByPath(t *testing.T) {
 	testIterativeStateSync(t, 1, false, true, rawdb.HashScheme)
 	testIterativeStateSync(t, 1, false, true, rawdb.PathScheme)
 }
+
 func TestIterativeStateSyncBatchedByPath(t *testing.T) {
 	testIterativeStateSync(t, 100, false, true, rawdb.HashScheme)
 	testIterativeStateSync(t, 100, false, true, rawdb.PathScheme)
@@ -413,6 +418,7 @@ func TestIterativeRandomStateSyncIndividual(t *testing.T) {
 	testIterativeRandomStateSync(t, 1, rawdb.HashScheme)
 	testIterativeRandomStateSync(t, 1, rawdb.PathScheme)
 }
+
 func TestIterativeRandomStateSyncBatched(t *testing.T) {
 	testIterativeRandomStateSync(t, 100, rawdb.HashScheme)
 	testIterativeRandomStateSync(t, 100, rawdb.PathScheme)

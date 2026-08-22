@@ -145,6 +145,7 @@ func TestProtocolVersion_Compare(t *testing.T) {
 		})
 	}
 }
+
 func TestProtocolVersion_String(t *testing.T) {
 	testCases := []struct {
 		version  ProtocolVersion

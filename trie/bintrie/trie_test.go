@@ -136,6 +136,7 @@ func TestTwoKeysMatchFirst42Bits(t *testing.T) {
 		t.Fatal("invalid height")
 	}
 }
+
 func TestInsertDuplicateKey(t *testing.T) {
 	var err error
 	tree := NewBinaryNode()
@@ -155,6 +156,7 @@ func TestInsertDuplicateKey(t *testing.T) {
 		t.Fatal("invalid height")
 	}
 }
+
 func TestLargeNumberOfEntries(t *testing.T) {
 	var err error
 	tree := NewBinaryNode()

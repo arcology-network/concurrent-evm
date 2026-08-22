@@ -52,6 +52,7 @@ func (h *runtimeHistogram) update(mh *metrics.Float64Histogram) {
 func (h *runtimeHistogram) Clear() {
 	panic("runtimeHistogram does not support Clear")
 }
+
 func (h *runtimeHistogram) Update(int64) {
 	panic("runtimeHistogram does not support Update")
 }

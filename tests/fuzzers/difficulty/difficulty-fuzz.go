@@ -62,6 +62,7 @@ func (f *fuzzer) readUint64(min, max uint64) uint64 {
 	a = min + a%(max-min)
 	return a
 }
+
 func (f *fuzzer) readBool() bool {
 	return f.read(1)[0]&0x1 == 0
 }

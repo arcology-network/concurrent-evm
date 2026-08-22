@@ -485,6 +485,7 @@ func (c *setupTransport) doProtoHandshake(our *protoHandshake) (*protoHandshake,
 	}
 	return &c.phs, nil
 }
+
 func (c *setupTransport) close(err error) {
 	c.calls += "close,"
 	c.closeErr = err
@@ -494,6 +495,7 @@ func (c *setupTransport) close(err error) {
 func (c *setupTransport) WriteMsg(Msg) error {
 	panic("WriteMsg called on setupTransport")
 }
+
 func (c *setupTransport) ReadMsg() (Msg, error) {
 	panic("ReadMsg called on setupTransport")
 }

@@ -159,6 +159,7 @@ func BenchmarkCall(b *testing.B) {
 		}
 	}
 }
+
 func benchmarkEVM_Create(bench *testing.B, code string) {
 	var (
 		statedb, _ = state.New(types.EmptyRootHash, state.NewDatabaseForTesting())
@@ -201,14 +202,17 @@ func BenchmarkEVM_CREATE_500(bench *testing.B) {
 	// initcode size 500K, repeatedly calls CREATE and then modifies the mem contents
 	benchmarkEVM_Create(bench, "5b6207a120600080f0600152600056")
 }
+
 func BenchmarkEVM_CREATE2_500(bench *testing.B) {
 	// initcode size 500K, repeatedly calls CREATE2 and then modifies the mem contents
 	benchmarkEVM_Create(bench, "5b586207a120600080f5600152600056")
 }
+
 func BenchmarkEVM_CREATE_1200(bench *testing.B) {
 	// initcode size 1200K, repeatedly calls CREATE and then modifies the mem contents
 	benchmarkEVM_Create(bench, "5b62124f80600080f0600152600056")
 }
+
 func BenchmarkEVM_CREATE2_1200(bench *testing.B) {
 	// initcode size 1200K, repeatedly calls CREATE2 and then modifies the mem contents
 	benchmarkEVM_Create(bench, "5b5862124f80600080f5600152600056")

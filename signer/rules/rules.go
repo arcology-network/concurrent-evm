@@ -59,6 +59,7 @@ func NewRuleEvaluator(next core.UIClientAPI, jsbackend storage.Storage) (*rulese
 
 	return c, nil
 }
+
 func (r *rulesetUI) RegisterUIServer(api *core.UIServerAPI) {
 	r.next.RegisterUIServer(api)
 	// TODO, make it possible to query from js
@@ -68,6 +69,7 @@ func (r *rulesetUI) Init(javascriptRules string) error {
 	r.jsRules = javascriptRules
 	return nil
 }
+
 func (r *rulesetUI) execute(jsfunc string, jsarg interface{}) (goja.Value, error) {
 	// Instantiate a fresh vm engine every time
 	vm := goja.New()

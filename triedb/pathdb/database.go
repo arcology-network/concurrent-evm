@@ -115,6 +115,7 @@ type layer interface {
 
 // Config contains the settings for database.
 type Config struct {
+	Parallel            bool   // Whether to use the sharded parallel PathDB backend
 	StateHistory        uint64 // Number of recent blocks to maintain state history for
 	EnableStateIndexing bool   // Whether to enable state history indexing for external state access
 	TrieCleanSize       int    // Maximum memory allowance (in bytes) for caching clean trie nodes
@@ -143,6 +144,9 @@ func (c *Config) sanitize() *Config {
 // fields returns a list of attributes of config for printing.
 func (c *Config) fields() []interface{} {
 	var list []interface{}
+	if c.Parallel {
+		list = append(list, "parallel", true)
+	}
 	if c.ReadOnly {
 		list = append(list, "readonly", true)
 	}
@@ -221,6 +225,7 @@ type Database struct {
 
 	config *Config        // Configuration for database
 	diskdb ethdb.Database // Persistent storage for matured trie nodes
+	rootdb ethdb.Database // Authoritative storage for the account-trie root
 	tree   *layerTree     // The group for all known layers
 
 	stateFreezer ethdb.ResettableAncientStore // Freezer for storing state histories, nil possible in tests
@@ -233,8 +238,17 @@ type Database struct {
 // store (with a number of memory layers from a journal). If the journal is not
 // matched with the base persistent layer, all the recorded diff layers are discarded.
 func New(diskdb ethdb.Database, config *Config, isVerkle bool) *Database {
+	return newDatabase(diskdb, diskdb, config, isVerkle)
+}
+
+// newDatabase constructs a PathDB whose persistent state root may be resolved
+// from a separate account-trie database.
+func newDatabase(diskdb ethdb.Database, rootdb ethdb.Database, config *Config, isVerkle bool) *Database {
 	if config == nil {
 		config = Defaults
+	}
+	if rootdb == nil {
+		panic("pathdb: root database is nil")
 	}
 	config = config.sanitize()
 
@@ -243,6 +257,7 @@ func New(diskdb ethdb.Database, config *Config, isVerkle bool) *Database {
 		isVerkle: isVerkle,
 		config:   config,
 		diskdb:   diskdb,
+		rootdb:   rootdb,
 		hasher:   merkleNodeHasher,
 	}
 	// Establish a dedicated database namespace tailored for verkle-specific
@@ -252,6 +267,7 @@ func New(diskdb ethdb.Database, config *Config, isVerkle bool) *Database {
 	// compress the shared key prefix.
 	if isVerkle {
 		db.diskdb = rawdb.NewTable(diskdb, string(rawdb.VerklePrefix))
+		db.rootdb = rawdb.NewTable(rootdb, string(rawdb.VerklePrefix))
 		db.hasher = verkleNodeHasher
 	}
 	// Construct the layer tree by resolving the in-disk singleton state
@@ -349,7 +365,7 @@ func (db *Database) repairHistory() error {
 func (db *Database) setStateGenerator() error {
 	// Load the state snapshot generation progress marker to prevent access
 	// to uncovered states.
-	generator, root, err := loadGenerator(db.diskdb, db.hasher)
+	generator, root, err := loadGenerator(db.diskdb, db.rootdb, db.hasher)
 	if err != nil {
 		return err
 	}
@@ -491,7 +507,7 @@ func (db *Database) Enable(root common.Hash) error {
 		return errDatabaseReadOnly
 	}
 	// Ensure the provided state root matches the stored one.
-	stored, err := db.hasher(rawdb.ReadAccountTrieNode(db.diskdb, nil))
+	stored, err := db.hasher(rawdb.ReadAccountTrieNode(db.rootdb, nil))
 	if err != nil {
 		return err
 	}

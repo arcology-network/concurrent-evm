@@ -424,6 +424,7 @@ func (n *network) getTransactions(blocknum uint64) types.Transactions {
 	index := blocknum - uint64(n.offset)
 	return n.chain[index].Transactions()
 }
+
 func (n *network) getReceipts(blocknum uint64) types.Receipts {
 	index := blocknum - uint64(n.offset)
 	if got := n.chain[index].Header().Number.Uint64(); got != blocknum {
@@ -439,6 +440,7 @@ func (n *network) forget(blocknum uint64) {
 	n.receipts = n.receipts[index:]
 	n.offset = int(blocknum)
 }
+
 func (n *network) progress(numBlocks int) {
 	n.lock.Lock()
 	defer n.lock.Unlock()

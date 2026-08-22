@@ -78,6 +78,7 @@ type alwaysDenyUI struct{}
 func (alwaysDenyUI) OnInputRequired(info core.UserInputRequest) (core.UserInputResponse, error) {
 	return core.UserInputResponse{}, nil
 }
+
 func (alwaysDenyUI) RegisterUIServer(api *core.UIServerAPI) {
 }
 
@@ -296,6 +297,7 @@ func TestMissingFunc(t *testing.T) {
 	}
 	t.Logf("Err %v", err)
 }
+
 func TestStorage(t *testing.T) {
 	t.Parallel()
 	js := `

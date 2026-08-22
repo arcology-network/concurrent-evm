@@ -1462,54 +1462,71 @@ type SyncState struct {
 func (s *SyncState) StartingBlock() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.StartingBlock)
 }
+
 func (s *SyncState) CurrentBlock() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.CurrentBlock)
 }
+
 func (s *SyncState) HighestBlock() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.HighestBlock)
 }
+
 func (s *SyncState) SyncedAccounts() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.SyncedAccounts)
 }
+
 func (s *SyncState) SyncedAccountBytes() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.SyncedAccountBytes)
 }
+
 func (s *SyncState) SyncedBytecodes() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.SyncedBytecodes)
 }
+
 func (s *SyncState) SyncedBytecodeBytes() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.SyncedBytecodeBytes)
 }
+
 func (s *SyncState) SyncedStorage() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.SyncedStorage)
 }
+
 func (s *SyncState) SyncedStorageBytes() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.SyncedStorageBytes)
 }
+
 func (s *SyncState) HealedTrienodes() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.HealedTrienodes)
 }
+
 func (s *SyncState) HealedTrienodeBytes() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.HealedTrienodeBytes)
 }
+
 func (s *SyncState) HealedBytecodes() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.HealedBytecodes)
 }
+
 func (s *SyncState) HealedBytecodeBytes() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.HealedBytecodeBytes)
 }
+
 func (s *SyncState) HealingTrienodes() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.HealingTrienodes)
 }
+
 func (s *SyncState) HealingBytecode() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.HealingBytecode)
 }
+
 func (s *SyncState) TxIndexFinishedBlocks() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.TxIndexFinishedBlocks)
 }
+
 func (s *SyncState) TxIndexRemainingBlocks() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.TxIndexRemainingBlocks)
 }
+
 func (s *SyncState) StateIndexRemaining() hexutil.Uint64 {
 	return hexutil.Uint64(s.progress.StateIndexRemaining)
 }

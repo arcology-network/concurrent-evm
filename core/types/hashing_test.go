@@ -214,6 +214,7 @@ type flatList []string
 func (f flatList) Len() int {
 	return len(f)
 }
+
 func (f flatList) EncodeIndex(i int, w *bytes.Buffer) {
 	w.Write(hexutil.MustDecode(f[i]))
 }

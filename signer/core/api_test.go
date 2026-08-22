@@ -125,6 +125,7 @@ func setup(t *testing.T) (*core.SignerAPI, *headlessUi) {
 	api := core.NewSignerAPI(am, 1337, true, ui, db, true, &storage.NoStorage{})
 	return api, ui
 }
+
 func createAccount(ui *headlessUi, api *core.SignerAPI, t *testing.T) {
 	ui.approveCh <- "Y"
 	ui.inputCh <- "a_long_password"

@@ -291,6 +291,7 @@ func NewSignerAPI(am *accounts.Manager, chainID int64, noUSB bool, ui UIClientAP
 	}
 	return signer
 }
+
 func (api *SignerAPI) openTrezor(url accounts.URL) {
 	resp, err := api.UI.OnInputRequired(UserInputRequest{
 		Prompt: "Pin required to open Trezor wallet\n" +

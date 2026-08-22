@@ -155,6 +155,8 @@ func (evm *EVM) Run(contract *Contract, input []byte, readOnly bool) (ret []byte
 		mem.Free()
 	}()
 	contract.Input = input
+	leaveCallContext := evm.ArcologyAPIs.enterCallContext(callContext)
+	defer leaveCallContext()
 
 	if debug {
 		defer func() { // this deferred method handles exit-with-error

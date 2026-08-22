@@ -46,15 +46,19 @@ func (msg *jsonrpcMessage) MsgIsResponse() bool {
 func (msg *jsonrpcMessage) MsgID() json.RawMessage {
 	return msg.ID
 }
+
 func (msg *jsonrpcMessage) MsgMethod() string {
 	return msg.Method
 }
+
 func (msg *jsonrpcMessage) MsgParams() json.RawMessage {
 	return msg.Params
 }
+
 func (msg *jsonrpcMessage) MsgError() *JsonError {
 	return msg.Error
 }
+
 func (msg *jsonrpcMessage) MsgResult() json.RawMessage {
 	return msg.Result
 }

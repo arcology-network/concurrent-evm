@@ -140,6 +140,7 @@ func BenchmarkTerminalHandler(b *testing.B) {
 	l := NewLogger(NewTerminalHandler(io.Discard, false))
 	benchmarkLogger(b, l)
 }
+
 func BenchmarkLogfmtHandler(b *testing.B) {
 	l := NewLogger(LogfmtHandler(io.Discard))
 	benchmarkLogger(b, l)

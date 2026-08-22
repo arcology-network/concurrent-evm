@@ -431,6 +431,7 @@ type sha256hash struct{}
 func (c *sha256hash) RequiredGas(input []byte) uint64 {
 	return uint64(len(input)+31)/32*params.Sha256PerWordGas + params.Sha256BaseGas
 }
+
 func (c *sha256hash) Run(input []byte) ([]byte, error) {
 	h := sha256.Sum256(input)
 	return h[:], nil
@@ -450,6 +451,7 @@ type ripemd160hash struct{}
 func (c *ripemd160hash) RequiredGas(input []byte) uint64 {
 	return uint64(len(input)+31)/32*params.Ripemd160PerWordGas + params.Ripemd160BaseGas
 }
+
 func (c *ripemd160hash) Run(input []byte) ([]byte, error) {
 	ripemd := ripemd160.New()
 	ripemd.Write(input)
@@ -470,6 +472,7 @@ type dataCopy struct{}
 func (c *dataCopy) RequiredGas(input []byte) uint64 {
 	return uint64(len(input)+31)/32*params.IdentityPerWordGas + params.IdentityBaseGas
 }
+
 func (c *dataCopy) Run(in []byte) ([]byte, error) {
 	return common.CopyBytes(in), nil
 }
@@ -1028,6 +1031,7 @@ func (c *bls12381G1MultiExpIsthmus) Run(input []byte) ([]byte, error) {
 
 	return new(bls12381G1MultiExp).Run(input)
 }
+
 func (c *bls12381G1MultiExpIsthmus) Name() string {
 	return "BLS12_G1MSM"
 }

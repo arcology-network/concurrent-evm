@@ -79,6 +79,8 @@ type backend interface {
 	Close() error
 }
 
+var _ backend = (*pathdb.ParaDatabase)(nil)
+
 // Database is the wrapper of the underlying backend which is shared by different
 // types of node backend as an entrypoint. It's responsible for all interactions
 // relevant with trie nodes and node preimages.
@@ -109,7 +111,11 @@ func NewDatabase(diskdb ethdb.Database, config *Config) *Database {
 		log.Crit("Both 'hash' and 'path' mode are configured")
 	}
 	if config.PathDB != nil {
-		db.backend = pathdb.New(diskdb, config.PathDB, config.IsVerkle)
+		if config.PathDB.Parallel {
+			db.backend = pathdb.NewParaDatabase(diskdb, config.PathDB, config.IsVerkle)
+		} else {
+			db.backend = pathdb.New(diskdb, config.PathDB, config.IsVerkle)
+		}
 	} else {
 		db.backend = hashdb.New(diskdb, config.HashDB)
 	}
@@ -131,11 +137,14 @@ func (db *Database) StateReader(blockRoot common.Hash) (database.StateReader, er
 
 // HistoricReader constructs a reader for accessing the requested historic state.
 func (db *Database) HistoricReader(root common.Hash) (*pathdb.HistoricalStateReader, error) {
-	pdb, ok := db.backend.(*pathdb.Database)
-	if !ok {
+	switch backend := db.backend.(type) {
+	case *pathdb.Database:
+		return backend.HistoricReader(root)
+	case *pathdb.ParaDatabase:
+		return backend.HistoricReader(root)
+	default:
 		return nil, errors.New("not supported")
 	}
-	return pdb.HistoricReader(root)
 }
 
 // Update performs a state transition by committing dirty nodes contained in the
@@ -153,6 +162,8 @@ func (db *Database) Update(root common.Hash, parent common.Hash, block uint64, n
 	case *hashdb.Database:
 		return b.Update(root, parent, block, nodes)
 	case *pathdb.Database:
+		return b.Update(root, parent, block, nodes, states.internal())
+	case *pathdb.ParaDatabase:
 		return b.Update(root, parent, block, nodes, states.internal())
 	}
 	return errors.New("unknown backend")
@@ -273,22 +284,28 @@ func (db *Database) Dereference(root common.Hash) error {
 // corresponding trie histories are existent. It's only supported by path-based
 // database and will return an error for others.
 func (db *Database) Recover(target common.Hash) error {
-	pdb, ok := db.backend.(*pathdb.Database)
-	if !ok {
+	switch backend := db.backend.(type) {
+	case *pathdb.Database:
+		return backend.Recover(target)
+	case *pathdb.ParaDatabase:
+		return backend.Recover(target)
+	default:
 		return errors.New("not supported")
 	}
-	return pdb.Recover(target)
 }
 
 // Recoverable returns the indicator if the specified state is enabled to be
 // recovered. It's only supported by path-based database and will return an
 // error for others.
 func (db *Database) Recoverable(root common.Hash) (bool, error) {
-	pdb, ok := db.backend.(*pathdb.Database)
-	if !ok {
+	switch backend := db.backend.(type) {
+	case *pathdb.Database:
+		return backend.Recoverable(root), nil
+	case *pathdb.ParaDatabase:
+		return backend.Recoverable(root), nil
+	default:
 		return false, errors.New("not supported")
 	}
-	return pdb.Recoverable(root), nil
 }
 
 // Disable deactivates the database and invalidates all available state layers
@@ -297,21 +314,27 @@ func (db *Database) Recoverable(root common.Hash) (bool, error) {
 //
 // It's only supported by path-based database and will return an error for others.
 func (db *Database) Disable() error {
-	pdb, ok := db.backend.(*pathdb.Database)
-	if !ok {
+	switch backend := db.backend.(type) {
+	case *pathdb.Database:
+		return backend.Disable()
+	case *pathdb.ParaDatabase:
+		return backend.Disable()
+	default:
 		return errors.New("not supported")
 	}
-	return pdb.Disable()
 }
 
 // Enable activates database and resets the state tree with the provided persistent
 // state root once the state sync is finished.
 func (db *Database) Enable(root common.Hash) error {
-	pdb, ok := db.backend.(*pathdb.Database)
-	if !ok {
+	switch backend := db.backend.(type) {
+	case *pathdb.Database:
+		return backend.Enable(root)
+	case *pathdb.ParaDatabase:
+		return backend.Enable(root)
+	default:
 		return errors.New("not supported")
 	}
-	return pdb.Enable(root)
 }
 
 // Journal commits an entire diff hierarchy to disk into a single journal entry.
@@ -319,51 +342,66 @@ func (db *Database) Enable(root common.Hash) error {
 // flattening everything down (bad for reorgs). It's only supported by path-based
 // database and will return an error for others.
 func (db *Database) Journal(root common.Hash) error {
-	pdb, ok := db.backend.(*pathdb.Database)
-	if !ok {
+	switch backend := db.backend.(type) {
+	case *pathdb.Database:
+		return backend.Journal(root)
+	case *pathdb.ParaDatabase:
+		return backend.Journal(root)
+	default:
 		return errors.New("not supported")
 	}
-	return pdb.Journal(root)
 }
 
 // VerifyState traverses the flat states specified by the given state root and
 // ensures they are matched with each other.
 func (db *Database) VerifyState(root common.Hash) error {
-	pdb, ok := db.backend.(*pathdb.Database)
-	if !ok {
+	switch backend := db.backend.(type) {
+	case *pathdb.Database:
+		return backend.VerifyState(root)
+	case *pathdb.ParaDatabase:
+		return backend.VerifyState(root)
+	default:
 		return errors.New("not supported")
 	}
-	return pdb.VerifyState(root)
 }
 
 // AccountIterator creates a new account iterator for the specified root hash and
 // seeks to a starting account hash.
 func (db *Database) AccountIterator(root common.Hash, seek common.Hash) (pathdb.AccountIterator, error) {
-	pdb, ok := db.backend.(*pathdb.Database)
-	if !ok {
+	switch backend := db.backend.(type) {
+	case *pathdb.Database:
+		return backend.AccountIterator(root, seek)
+	case *pathdb.ParaDatabase:
+		return backend.AccountIterator(root, seek)
+	default:
 		return nil, errors.New("not supported")
 	}
-	return pdb.AccountIterator(root, seek)
 }
 
 // StorageIterator creates a new storage iterator for the specified root hash and
 // account. The iterator will be move to the specific start position.
 func (db *Database) StorageIterator(root common.Hash, account common.Hash, seek common.Hash) (pathdb.StorageIterator, error) {
-	pdb, ok := db.backend.(*pathdb.Database)
-	if !ok {
+	switch backend := db.backend.(type) {
+	case *pathdb.Database:
+		return backend.StorageIterator(root, account, seek)
+	case *pathdb.ParaDatabase:
+		return backend.StorageIterator(root, account, seek)
+	default:
 		return nil, errors.New("not supported")
 	}
-	return pdb.StorageIterator(root, account, seek)
 }
 
 // IndexProgress returns the indexing progress made so far. It provides the
 // number of states that remain unindexed.
 func (db *Database) IndexProgress() (uint64, error) {
-	pdb, ok := db.backend.(*pathdb.Database)
-	if !ok {
+	switch backend := db.backend.(type) {
+	case *pathdb.Database:
+		return backend.IndexProgress()
+	case *pathdb.ParaDatabase:
+		return backend.IndexProgress()
+	default:
 		return 0, errors.New("not supported")
 	}
-	return pdb.IndexProgress()
 }
 
 // IsVerkle returns the indicator if the database is holding a verkle tree.

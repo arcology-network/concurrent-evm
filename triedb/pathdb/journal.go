@@ -122,8 +122,8 @@ type journalGenerator struct {
 }
 
 // loadGenerator loads the state generation progress marker from the database.
-func loadGenerator(db ethdb.KeyValueReader, hash nodeHasher) (*journalGenerator, common.Hash, error) {
-	trieRoot, err := hash(rawdb.ReadAccountTrieNode(db, nil))
+func loadGenerator(db ethdb.KeyValueReader, rootdb ethdb.KeyValueReader, hash nodeHasher) (*journalGenerator, common.Hash, error) {
+	trieRoot, err := hash(rawdb.ReadAccountTrieNode(rootdb, nil))
 	if err != nil {
 		return nil, common.Hash{}, err
 	}
@@ -161,7 +161,7 @@ func loadGenerator(db ethdb.KeyValueReader, hash nodeHasher) (*journalGenerator,
 // loadLayers loads a pre-existing state layer backed by a key-value store.
 func (db *Database) loadLayers() layer {
 	// Retrieve the root node of persistent state.
-	root, err := db.hasher(rawdb.ReadAccountTrieNode(db.diskdb, nil))
+	root, err := db.hasher(rawdb.ReadAccountTrieNode(db.rootdb, nil))
 	if err != nil {
 		log.Crit("Failed to compute node hash", "err", err)
 	}
@@ -378,7 +378,7 @@ func (db *Database) Journal(root common.Hash) error {
 	}
 	// Secondly write out the state root in disk, ensure all layers
 	// on top are continuous with disk.
-	diskRoot, err := db.hasher(rawdb.ReadAccountTrieNode(db.diskdb, nil))
+	diskRoot, err := db.hasher(rawdb.ReadAccountTrieNode(db.rootdb, nil))
 	if err != nil {
 		return err
 	}

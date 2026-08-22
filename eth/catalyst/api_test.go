@@ -1308,6 +1308,7 @@ func allHashes(blocks []*types.Block) []common.Hash {
 	}
 	return hashes
 }
+
 func allBodies(blocks []*types.Block) []*types.Body {
 	var bodies []*types.Body
 	for _, b := range blocks {

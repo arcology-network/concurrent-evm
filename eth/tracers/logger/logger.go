@@ -374,6 +374,7 @@ func (l *StructLogger) Stop(err error) {
 func (l *StructLogger) OnTxStart(env *tracing.VMContext, tx *types.Transaction, from common.Address) {
 	l.env = env
 }
+
 func (l *StructLogger) OnSystemCallStart(env *tracing.VMContext) {
 	l.skip = true
 }

@@ -975,7 +975,7 @@
 "00e063bc": "AddressQuery(address)",
 "00e0c3b1": "_getValueOffMillipercent(uint256,uint256)",
 "00e0c53f": "hold()",
-"00e0d089": "getShardAddress()",
+"00e0d089": "getShardDBAddress()",
 "00e11919": "setClamTax(uint8)",
 "00e175ae": "poolClosingTimestamp()",
 "00e1986d": "grantVestedTokens(address,uint256,uint64,uint64,uint64)",

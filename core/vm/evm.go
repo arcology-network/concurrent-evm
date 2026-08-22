@@ -138,6 +138,9 @@ type EVM struct {
 
 	readOnly   bool   // Whether to throw on stateful modifications
 	returnData []byte // Last CALL's return data for subsequent reuse
+
+	// ArcologyAPIs redirects selected EVM calls to the Arcology runtime.
+	ArcologyAPIs *ArcologyNetwork
 }
 
 // NewEVM constructs an EVM instance with the supplied block context, state
@@ -155,6 +158,7 @@ func NewEVM(blockCtx BlockContext, statedb StateDB, chainConfig *params.ChainCon
 		hasher:      crypto.NewKeccakState(),
 	}
 	evm.precompiles = activePrecompiledContracts(evm.chainRules)
+	evm.ArcologyAPIs = NewArcologyNetwork(evm)
 
 	switch {
 	case evm.chainRules.IsOsaka:
@@ -270,6 +274,11 @@ func (evm *EVM) Call(caller common.Address, addr common.Address, input []byte, g
 	// Fail if we're trying to transfer more than the available balance
 	if !value.IsZero() && !evm.Context.CanTransfer(evm.StateDB, caller, value) {
 		return nil, gas, ErrInsufficientBalance
+	}
+	// Redirect the call to Arcology before mutating the local StateDB. A router
+	// returning invoked=false leaves the standard EVM path unchanged.
+	if invoked, ret, leftOverGas, err := evm.ArcologyAPIs.Call(caller, addr, input, gas, false); invoked {
+		return ret, leftOverGas, err
 	}
 	snapshot := evm.StateDB.Snapshot()
 	p, isPrecompile := evm.precompile(addr)
@@ -447,6 +456,11 @@ func (evm *EVM) StaticCall(caller common.Address, addr common.Address, input []b
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, gas, ErrDepth
+	}
+	// STATICCALL uses the same Arcology interception point but identifies the
+	// redirected operation as read-only.
+	if invoked, ret, leftOverGas, err := evm.ArcologyAPIs.Call(caller, addr, input, gas, true); invoked {
+		return ret, leftOverGas, err
 	}
 	// We take a snapshot here. This is a bit counter-intuitive, and could probably be skipped.
 	// However, even a staticcall is considered a 'touch'. On mainnet, static calls were introduced

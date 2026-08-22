@@ -685,6 +685,7 @@ func testSyncOrdering(t *testing.T, scheme string) {
 		}
 	}
 }
+
 func syncWith(t *testing.T, root common.Hash, db ethdb.Database, srcDb *testDb) {
 	syncWithHookWriter(t, root, db, srcDb, nil)
 }

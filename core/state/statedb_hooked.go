@@ -57,6 +57,10 @@ func (s *hookedStateDB) GetBalance(addr common.Address) *uint256.Int {
 	return s.inner.GetBalance(addr)
 }
 
+func (s *hookedStateDB) PeekBalance(addr common.Address) *uint256.Int {
+	return s.inner.PeekBalance(addr)
+}
+
 func (s *hookedStateDB) GetNonce(addr common.Address) uint64 {
 	return s.inner.GetNonce(addr)
 }

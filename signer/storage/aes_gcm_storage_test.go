@@ -91,6 +91,7 @@ func TestFileStorage(t *testing.T) {
 		}
 	}
 }
+
 func TestEnd2End(t *testing.T) {
 	t.Parallel()
 	log.SetDefault(log.NewLogger(log.NewTerminalHandlerWithLevel(colorable.NewColorableStderr(), slog.LevelInfo, true)))

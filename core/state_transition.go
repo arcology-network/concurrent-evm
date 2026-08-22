@@ -34,10 +34,13 @@ import (
 // ExecutionResult includes all output after executing given evm
 // message no matter the execution itself is successful or not.
 type ExecutionResult struct {
-	UsedGas    uint64 // Total used gas, not including the refunded gas
-	MaxUsedGas uint64 // Maximum gas consumed during execution, excluding gas refunds.
-	Err        error  // Any error encountered during the execution(listed in core/vm/errors.go)
-	ReturnData []byte // Returned data from evm(function result or data supplied with revert opcode)
+	UsedGas     uint64 // Total used gas, not including the refunded gas
+	RefundedGas uint64 // Total gas refunded after execution
+	MaxUsedGas  uint64 // Maximum gas consumed during execution, excluding gas refunds.
+	Err         error  // Any error encountered during the execution(listed in core/vm/errors.go)
+	ReturnData  []byte // Returned data from evm(function result or data supplied with revert opcode)
+
+	ContractAddress common.Address // Address created by a contract-creation transaction
 }
 
 // Unwrap returns the internal evm error which allows us for further
@@ -315,7 +318,7 @@ func (st *stateTransition) buyGas() error {
 	if overflow {
 		return fmt.Errorf("%w: address %v required balance exceeds 256 bits", ErrInsufficientFunds, st.msg.From.Hex())
 	}
-	if have, want := st.state.GetBalance(st.msg.From), balanceCheckU256; have.Cmp(want) < 0 {
+	if have, want := st.state.PeekBalance(st.msg.From), balanceCheckU256; have.Cmp(want) < 0 {
 		return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, st.msg.From.Hex(), have, want)
 	}
 	if err := st.gp.SubGas(st.msg.GasLimit); err != nil {
@@ -330,6 +333,12 @@ func (st *stateTransition) buyGas() error {
 	st.initialGas = st.msg.GasLimit
 	mgvalU256, _ := uint256.FromBig(mgval)
 	st.state.SubBalance(st.msg.From, mgvalU256, tracing.BalanceDecreaseGasBuy)
+
+	// Arcology may reserve gas for deferred execution. The hook mutates the
+	// transaction gas counters so the reservation remains part of accounting.
+	if _, success := st.evm.ArcologyAPIs.PrepayGas(&st.initialGas, &st.gasRemaining); !success {
+		return fmt.Errorf("gas not enough to prepay for deferred execution")
+	}
 	return nil
 }
 
@@ -577,11 +586,12 @@ func (st *stateTransition) innerExecute() (*ExecutionResult, error) {
 	st.state.Prepare(rules, msg.From, st.evm.Context.Coinbase, msg.To, vm.ActivePrecompiles(rules), msg.AccessList)
 
 	var (
-		ret   []byte
-		vmerr error // vm errors do not effect consensus and are therefore not assigned to err
+		ret          []byte
+		vmerr        error // vm errors do not effect consensus and are therefore not assigned to err
+		contractAddr common.Address
 	)
 	if contractCreation {
-		ret, _, st.gasRemaining, vmerr = st.evm.Create(msg.From, msg.Data, st.gasRemaining, value)
+		ret, contractAddr, st.gasRemaining, vmerr = st.evm.Create(msg.From, msg.Data, st.gasRemaining, value)
 	} else {
 		// Increment the nonce for the next transaction.
 		st.state.SetNonce(msg.From, st.state.GetNonce(msg.From)+1, tracing.NonceChangeEoACall)
@@ -606,6 +616,9 @@ func (st *stateTransition) innerExecute() (*ExecutionResult, error) {
 		// Execute the transaction's call.
 		ret, st.gasRemaining, vmerr = st.evm.Call(msg.From, st.to(), msg.Data, st.gasRemaining, value)
 	}
+	// Report the EVM result before refund processing. Execution errors are valid
+	// transaction outcomes and are therefore delivered separately from Go errors.
+	st.evm.ArcologyAPIs.SetExecutionErr(vmerr)
 
 	// OP-Stack: pre-Regolith: if deposit, skip refunds, skip tipping coinbase
 	// Regolith changes this behaviour to report the actual gasUsed instead of always reporting all gas used.
@@ -628,7 +641,8 @@ func (st *stateTransition) innerExecute() (*ExecutionResult, error) {
 	peakGasUsed := st.gasUsed()
 
 	// Compute refund counter, capped to a refund quotient.
-	st.gasRemaining += st.calcRefund()
+	gasRefund := st.calcRefund()
+	st.gasRemaining += gasRefund
 	if rules.IsPrague {
 		// After EIP-7623: Data-heavy transactions pay the floor gas.
 		if st.gasUsed() < floorDataGas {
@@ -650,10 +664,11 @@ func (st *stateTransition) innerExecute() (*ExecutionResult, error) {
 	if st.msg.IsDepositTx && rules.IsOptimismRegolith {
 		// Skip coinbase payments for deposit tx in Regolith
 		return &ExecutionResult{
-			UsedGas:    st.gasUsed(),
-			MaxUsedGas: peakGasUsed,
-			Err:        vmerr,
-			ReturnData: ret,
+			UsedGas:     st.gasUsed(),
+			RefundedGas: gasRefund,
+			MaxUsedGas:  peakGasUsed,
+			Err:         vmerr,
+			ReturnData:  ret,
 		}, nil
 	}
 
@@ -704,10 +719,12 @@ func (st *stateTransition) innerExecute() (*ExecutionResult, error) {
 	}
 
 	return &ExecutionResult{
-		UsedGas:    st.gasUsed(),
-		MaxUsedGas: peakGasUsed,
-		Err:        vmerr,
-		ReturnData: ret,
+		UsedGas:         st.gasUsed(),
+		RefundedGas:     gasRefund,
+		MaxUsedGas:      peakGasUsed,
+		Err:             vmerr,
+		ReturnData:      ret,
+		ContractAddress: contractAddr,
 	}, nil
 }
 
@@ -791,6 +808,10 @@ func (st *stateTransition) calcRefund() uint64 {
 // returnGas returns ETH for remaining gas,
 // exchanged at the original rate.
 func (st *stateTransition) returnGas() {
+	// Arcology returns gas reserved for deferred execution before the remaining
+	// gas is converted back into ETH and returned to the block gas pool.
+	st.evm.ArcologyAPIs.RefundPrepaidGas(&st.gasRemaining)
+
 	remaining := uint256.NewInt(st.gasRemaining)
 	remaining.Mul(remaining, uint256.MustFromBig(st.msg.GasPrice))
 	st.state.AddBalance(st.msg.From, remaining, tracing.BalanceIncreaseGasReturn)
@@ -799,9 +820,14 @@ func (st *stateTransition) returnGas() {
 		st.evm.Config.Tracer.OnGasChange(st.gasRemaining, 0, tracing.GasChangeTxLeftOverReturned)
 	}
 
-	// Also return remaining gas to the block gas counter so it is
-	// available for the next transaction.
-	st.gp.AddGas(st.gasRemaining)
+	// Also reconcile the transaction's actual gas consumption with the block
+	// gas pool. This reduces to AddGas(gasRemaining) without Arcology prepayment.
+	gasUsed := st.gasUsed()
+	if gasUsed >= st.msg.GasLimit {
+		st.gp.SubGas(gasUsed - st.msg.GasLimit)
+	} else {
+		st.gp.AddGas(st.msg.GasLimit - gasUsed)
+	}
 }
 
 func (st *stateTransition) refundIsthmusOperatorCost() {
