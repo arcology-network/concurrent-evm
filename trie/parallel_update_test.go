@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/trie/trienode"
 )
 
@@ -381,6 +382,93 @@ func TestStateTrieUpdateAccountBatch(t *testing.T) {
 	if have, want := printSet(haveNodes), printSet(wantNodes); have != want {
 		t.Fatalf("state nodeset mismatch\nhave:\n%s\nwant:\n%s", have, want)
 	}
+}
+
+func TestStateTrieUpdateStorageBatch(t *testing.T) {
+	sequential, err := NewStateTrie(StorageTrieID(types.EmptyRootHash, common.HexToHash("01"), types.EmptyRootHash), newTestDatabase(rawdb.NewMemoryDatabase(), rawdb.HashScheme))
+	if err != nil {
+		t.Fatalf("failed to create sequential storage trie: %v", err)
+	}
+
+	parallel, err := NewStateTrie(StorageTrieID(types.EmptyRootHash, common.HexToHash("01"), types.EmptyRootHash), newTestDatabase(rawdb.NewMemoryDatabase(), rawdb.HashScheme))
+	if err != nil {
+		t.Fatalf("failed to create parallel storage trie: %v", err)
+	}
+
+	address := common.HexToAddress("01")
+	initial := make([]StorageUpdate, 0, 256)
+	for i := 0; i < 256; i++ {
+		initial = append(initial, StorageUpdate{
+			Key:   batchTestKey(i, 0),
+			Value: bytes.Repeat([]byte{byte(i%251 + 1)}, 32),
+		})
+	}
+
+	for _, update := range initial {
+		if err := sequential.UpdateStorage(address, update.Key, update.Value); err != nil {
+			t.Fatalf("failed to initialize sequential storage: %v", err)
+		}
+	}
+	if err := parallel.UpdateStorageBatch(initial); err != nil {
+		t.Fatalf("failed to initialize batched storage: %v", err)
+	}
+	if have, want := parallel.Hash(), sequential.Hash(); have != want {
+		t.Fatalf("initial storage root mismatch: have %x want %x", have, want)
+	}
+	if _, ok := parallel.trie.root.(*fullNode); !ok {
+		t.Fatalf("storage trie root is not a full node: %T", parallel.trie.root)
+	}
+
+	updates := make([]StorageUpdate, 0, 384)
+	for i, initialUpdate := range initial {
+		update := StorageUpdate{Key: initialUpdate.Key}
+		if i%3 == 0 {
+			update.Delete = true
+			if err := sequential.DeleteStorage(address, update.Key); err != nil {
+				t.Fatalf("failed to delete sequential storage: %v", err)
+			}
+		} else {
+			update.Value = bytes.Repeat([]byte{byte((i+17)%251 + 1)}, 48)
+			if err := sequential.UpdateStorage(address, update.Key, update.Value); err != nil {
+				t.Fatalf("failed to update sequential storage: %v", err)
+			}
+		}
+		updates = append(updates, update)
+	}
+	for i := 0; i < 128; i++ {
+		update := StorageUpdate{
+			Key:   batchTestKey(i, 1),
+			Value: bytes.Repeat([]byte{byte(i%251 + 1)}, 40),
+		}
+		updates = append(updates, update)
+		if err := sequential.UpdateStorage(address, update.Key, update.Value); err != nil {
+			t.Fatalf("failed to insert sequential storage: %v", err)
+		}
+	}
+
+	genericOperations := make([]UpdateOperation, 0, len(updates))
+	for _, update := range updates {
+		genericOperations = append(genericOperations, UpdateOperation{Key: crypto.Keccak256(update.Key)})
+	}
+	if _, _, parallelPath := parallel.trie.prepareUpdateBuckets(genericOperations); !parallelPath {
+		t.Fatal("storage batch did not qualify for the parallel trie path")
+	}
+
+	if err := parallel.UpdateStorageBatch(updates); err != nil {
+		t.Fatalf("failed to apply storage batch: %v", err)
+	}
+	for _, update := range updates {
+		have, haveErr := parallel.GetStorage(address, update.Key)
+		want, wantErr := sequential.GetStorage(address, update.Key)
+		if haveErr != nil || wantErr != nil {
+			t.Fatalf("failed to read storage key %x: parallel %v sequential %v", update.Key, haveErr, wantErr)
+		}
+		if !bytes.Equal(have, want) {
+			t.Fatalf("storage value mismatch for %x: have %x want %x", update.Key, have, want)
+		}
+	}
+
+	assertBatchTriesEqual(t, &sequential.trie, &parallel.trie)
 }
 
 func BenchmarkUpdateBatchComparison(b *testing.B) {

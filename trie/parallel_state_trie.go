@@ -32,6 +32,14 @@ type AccountUpdate struct {
 	Delete  bool
 }
 
+// StorageUpdate describes a storage-trie mutation. Value is ignored when
+// Delete is set. Key is the unhashed storage slot accepted by UpdateStorage.
+type StorageUpdate struct {
+	Key    []byte
+	Value  []byte
+	Delete bool
+}
+
 // UpdateAccountBatch encodes and applies a collection of account mutations.
 // The underlying MPT partitions sufficiently large batches across independent
 // root branches.
@@ -67,6 +75,48 @@ func (t *StateTrie) UpdateAccountBatch(updates []AccountUpdate) error {
 				delete(t.secKeyCache, key)
 			} else {
 				t.secKeyCache[key] = update.Address.Bytes()
+			}
+		}
+	}
+
+	return nil
+}
+
+// UpdateStorageBatch encodes and applies a collection of storage mutations.
+// The underlying MPT uses the same adaptive root-subtrie partitioning as an
+// account trie; only the secure-key and value encoding adapter differs.
+func (t *StateTrie) UpdateStorageBatch(updates []StorageUpdate) error {
+	operations := make([]UpdateOperation, 0, len(updates))
+	keys := make([][]byte, 0, len(updates))
+
+	for _, update := range updates {
+		key := crypto.Keccak256(update.Key)
+		var value []byte
+
+		if !update.Delete {
+			encoded, err := rlp.EncodeToBytes(update.Value)
+			if err != nil {
+				return err
+			}
+			value = encoded
+		}
+
+		operations = append(operations, UpdateOperation{Key: key, Value: value})
+		keys = append(keys, key)
+	}
+
+	if err := t.trie.UpdateBatch(operations); err != nil {
+		return err
+	}
+
+	if t.preimages != nil {
+		for i, update := range updates {
+			key := common.BytesToHash(keys[i])
+
+			if update.Delete {
+				delete(t.secKeyCache, key)
+			} else {
+				t.secKeyCache[key] = common.CopyBytes(update.Key)
 			}
 		}
 	}

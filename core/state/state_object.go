@@ -28,11 +28,16 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/ethereum/go-ethereum/trie/trienode"
 	"github.com/holiman/uint256"
 )
 
 type Storage map[common.Hash]common.Hash
+
+type storageTrieBatcher interface {
+	UpdateStorageBatch([]trie.StorageUpdate) error
+}
 
 func (s Storage) Copy() Storage {
 	return maps.Clone(s)
@@ -322,9 +327,13 @@ func (s *stateObject) updateTrie() (Trie, error) {
 	// into a shortnode. This requires `B` to be resolved from disk.
 	// Whereas if the created node is handled first, then the collapse is avoided, and `B` is not resolved.
 	var (
-		deletions []common.Hash
-		used      = make([]common.Hash, 0, len(s.uncommittedStorage))
+		batcher, batch = tr.(storageTrieBatcher)
+		deletions      []common.Hash
+		updates        = make([]trie.StorageUpdate, 0, len(s.uncommittedStorage))
+		updateCount    int64
+		used           = make([]common.Hash, 0, len(s.uncommittedStorage))
 	)
+	batch = batch && !s.db.singlethreaded
 	for key, origin := range s.uncommittedStorage {
 		// Skip noop changes, persist actual changes
 		value, exist := s.pendingStorage[key]
@@ -337,23 +346,46 @@ func (s *stateObject) updateTrie() (Trie, error) {
 			continue
 		}
 		if (value != common.Hash{}) {
-			if err := tr.UpdateStorage(s.address, key[:], common.TrimLeftZeroes(value[:])); err != nil {
-				s.db.setError(err)
-				return nil, err
+			if batch {
+				updates = append(updates, trie.StorageUpdate{
+					Key:   common.CopyBytes(key[:]),
+					Value: common.CopyBytes(common.TrimLeftZeroes(value[:])),
+				})
+				updateCount++
+			} else {
+				if err := tr.UpdateStorage(s.address, key[:], common.TrimLeftZeroes(value[:])); err != nil {
+					s.db.setError(err)
+					return nil, err
+				}
+				s.db.StorageUpdated.Add(1)
 			}
-			s.db.StorageUpdated.Add(1)
 		} else {
 			deletions = append(deletions, key)
 		}
 		// Cache the items for preloading
 		used = append(used, key) // Copy needed for closure
 	}
-	for _, key := range deletions {
-		if err := tr.DeleteStorage(s.address, key[:]); err != nil {
+	if batch {
+		for _, key := range deletions {
+			updates = append(updates, trie.StorageUpdate{
+				Key:    common.CopyBytes(key[:]),
+				Delete: true,
+			})
+		}
+		if err := batcher.UpdateStorageBatch(updates); err != nil {
 			s.db.setError(err)
 			return nil, err
 		}
-		s.db.StorageDeleted.Add(1)
+		s.db.StorageUpdated.Add(updateCount)
+		s.db.StorageDeleted.Add(int64(len(deletions)))
+	} else {
+		for _, key := range deletions {
+			if err := tr.DeleteStorage(s.address, key[:]); err != nil {
+				s.db.setError(err)
+				return nil, err
+			}
+			s.db.StorageDeleted.Add(1)
+		}
 	}
 	if s.db.prefetcher != nil {
 		s.db.prefetcher.used(s.addrHash, s.data.Root, nil, used)
