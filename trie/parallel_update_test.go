@@ -63,6 +63,108 @@ func TestUpdateBatchEquivalent(t *testing.T) {
 	assertBatchTriesEqual(t, sequential, parallel)
 }
 
+func TestUpdateBatchTrieShapes(t *testing.T) {
+	allShards := make([]int, parallelTrieShardCount)
+	for i := range allShards {
+		allShards[i] = i
+	}
+
+	tests := []struct {
+		name          string
+		initialShards []int
+		wantParallel  bool
+		checkRoot     func(*testing.T, node)
+	}{
+		{
+			name:         "new trie",
+			wantParallel: false,
+			checkRoot: func(t *testing.T, root node) {
+				t.Helper()
+				if root != nil {
+					t.Fatalf("new trie root is not nil: %T", root)
+				}
+			},
+		},
+		{
+			name:          "complete trie",
+			initialShards: allShards,
+			wantParallel:  true,
+			checkRoot: func(t *testing.T, root node) {
+				t.Helper()
+				branch, ok := root.(*fullNode)
+				if !ok {
+					t.Fatalf("complete trie root is not a full node: %T", root)
+				}
+				for position := 0; position < parallelTrieShardCount; position++ {
+					if branch.Children[position] == nil {
+						t.Fatalf("complete trie is missing root shard %d", position)
+					}
+				}
+			},
+		},
+		{
+			name:          "incomplete trie",
+			initialShards: []int{0, 4, 8, 12},
+			wantParallel:  true,
+			checkRoot: func(t *testing.T, root node) {
+				t.Helper()
+				branch, ok := root.(*fullNode)
+				if !ok {
+					t.Fatalf("incomplete trie root is not a full node: %T", root)
+				}
+				if branch.Children[0] == nil || branch.Children[4] == nil || branch.Children[8] == nil || branch.Children[12] == nil {
+					t.Fatal("incomplete trie is missing an expected existing root shard")
+				}
+				if branch.Children[1] != nil || branch.Children[15] != nil {
+					t.Fatal("incomplete trie unexpectedly contains every root shard")
+				}
+			},
+		},
+	}
+
+	operations := make([]UpdateOperation, 0, 2*parallelTrieShardCount)
+	for i := 0; i < 2*parallelTrieShardCount; i++ {
+		position := i % parallelTrieShardCount
+		operations = append(operations, UpdateOperation{
+			Key:   batchTestKey((position<<4)+(i/parallelTrieShardCount)+1, 1),
+			Value: bytes.Repeat([]byte{byte(i + 1)}, 48),
+		})
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			sequential := NewEmpty(nil)
+			parallel := NewEmpty(nil)
+
+			for _, position := range test.initialShards {
+				operation := UpdateOperation{
+					Key:   batchTestKey(position<<4, 0),
+					Value: []byte{byte(position + 1)},
+				}
+				if err := sequential.Update(operation.Key, operation.Value); err != nil {
+					t.Fatalf("failed to initialize sequential trie: %v", err)
+				}
+				if err := parallel.Update(operation.Key, operation.Value); err != nil {
+					t.Fatalf("failed to initialize batch trie: %v", err)
+				}
+			}
+
+			test.checkRoot(t, parallel.root)
+			_, _, parallelPath := parallel.prepareUpdateBuckets(operations)
+			if parallelPath != test.wantParallel {
+				t.Fatalf("parallel path = %t, want %t", parallelPath, test.wantParallel)
+			}
+
+			applySequentially(t, sequential, operations)
+			if err := parallel.UpdateBatch(operations); err != nil {
+				t.Fatalf("batch update failed: %v", err)
+			}
+
+			assertBatchTriesEqual(t, sequential, parallel)
+		})
+	}
+}
+
 func TestUpdateBatchRootReduction(t *testing.T) {
 	t.Run("single child", func(t *testing.T) {
 		db, root := makeBatchTestTrie(t, parallelTrieShardCount)
